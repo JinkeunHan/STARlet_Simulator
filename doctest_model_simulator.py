@@ -7,6 +7,7 @@ AiosData를 Presenter와 주고 받는다.
 import os
 import csv
 from dataclasses import dataclass
+import doctest
 
 @dataclass
 class AiosData:
@@ -25,10 +26,6 @@ class AiosData:
     message:str = ""
 
 class _FileChecker:
-    '''
-    비공개 은닉 클래스, 내부에서만 동작하며 객체 단위로 갖는 정보를 바탕으로
-    파일의 존재여부를 확인하거나 내용을 읽고 쓴다.
-    '''
     def __init__(self, path, name):
         self.path = path
         self.name = name
@@ -47,11 +44,10 @@ class _FileChecker:
     def contents(self)->list:
         '''
         변수:list = 객체.contents 로 읽는다.
-        self.path 경로의 self.name 이름의 파일을 읽고 그 내용을 반환한다.
+        self.path 경로의 self.name 이름의 파일을 읽고 그 내용을 반환한다. 
         name의 확장자에 맞춰, csv 파일 또는 text 파일을 읽어낸다.
         '''
-        if (return_value:=self.is_exist)== "Non existing":
-            return return_value
+        if (return_value:=self.is_exist)== "Non existing": return return_value
         if ".csv" in self.name:
             with open(self.path+self.name,'r', encoding='utf-8') as f_csv:
                 lines = [line for line in csv.reader(f_csv, delimiter=" ") if line]
@@ -85,6 +81,34 @@ class ModelSimulator:
     - CFX_Status.csv 및 yy-mm-dd.txt가 여기에 해당
     3) 특정 경로에 지정된 이름의 파일을 쓰는 기능
     - Method_status.csv 및 *.trc가 여기에 해당
+    >>> model_simulator = ModelSimulator() 
+    >>> test_dir = "d:/test_simulator/"
+    >>> if "test_simulator" in os.listdir("d:/"):
+    ...     import shutil
+    ...     shutil.rmtree("/test_simulator")
+    >>> os.mkdir(test_dir)
+    >>> model_simulator.loc_cfx_status = (test_dir,"test.csv")
+    >>> model_simulator.loc_elevator_enable = (test_dir,"test.csv")
+    >>> model_simulator.loc_plate_exist = (test_dir,"test.csv")
+    >>> model_simulator.loc_method_status = (test_dir,"test.csv")
+    >>> model_simulator.loc_trc = (test_dir,"test.trc")
+    >>> test = AiosData(cfx_status = [], method_status = [])
+    >>> test.method_run ='0'
+    >>> test.elevator_request = '0'
+    >>> test.plrn1_name = 'test_plrn1.plrn'
+    >>> test.plrn2_name = 'test_plrn2.plrn'
+    >>> test.message = 'test_message'
+    >>> model_simulator.value.elevator_enable
+    'Non existing'
+    >>> model_simulator.value.plate_exist
+    'Non existing'
+    >>> model_simulator.value = test
+    >>> model_simulator.value.elevator_enable
+    'Existing'
+    >>> model_simulator.value.plate_exist
+    'Existing'
+    >>> model_simulator.value.cfx_status
+    [['Method', 'run,', '0'], ['Elevator', 'requeset,', '0'], ['Plrn1,', 'test_plrn1.plrn'], ['Plrn2,', 'test_plrn2.plrn']]
     '''
     contents_method_status=[
     ["Method","run,",""],
@@ -92,16 +116,12 @@ class ModelSimulator:
     ["Plrn1,",""],
     ["Plrn2,",""]
     ]
-    info_cfx_status = ("C:/Seegene_Method_Setting/RM_module/",
-                      "CFX_status.csv")
-    info_elevator_enable = ("C:/Seegene_Method_Setting/RM_module/elevator_status/",
-                           "Method_status.csv")
-    info_plate_exist = ("C:/Seegene_Method_Setting/RM_module/elevator_status/",
-                       "Elevator_enable.csv")
-    info_method_status = ("C:/Seegene_Method_Setting/RM_module/",
-                         "Plate_exist.csv")
-    info_trc = ("C:/Program Files (x86)/HAMILTON/LogFile/",
-               "test.trc")
+    loc_cfx_status = ("d:/","test.csv")
+    loc_elevator_enable = ("d:/","test.csv")
+    loc_plate_exist = ("d:/","test.csv")
+    loc_method_status = ("d:/","test.csv")
+    loc_trc = ("d:/","test.trc")
+
     def __init__(self):
         self.aios_data = AiosData(
             [['CFX#1', "00:00:00"],['CFX#2', "00:00:00"]],#cfx_status
@@ -110,12 +130,12 @@ class ModelSimulator:
     @property #read CFX_Status.csv file, check Plate_exist and Elevator_enable
     def value(self)->AiosData:
         '''
-        호출 시 cfx_status.csv 파일 내용 및 elevator_enable, plate_exist
+        호출 시 cfx_status.csv 파일 내용 및 elevator_enable, plate_exist 
         파일의 존재여부를 반환한다.
         '''
-        self.aios_data.cfx_status = _FileChecker(*self.info_cfx_status).contents
-        self.aios_data.elevator_enable = _FileChecker(*self.info_elevator_enable).is_exist
-        self.aios_data.plate_exist = _FileChecker(*self.info_plate_exist).is_exist
+        self.aios_data.cfx_status = _FileChecker(*self.loc_cfx_status).contents
+        self.aios_data.elevator_enable = _FileChecker(*self.loc_elevator_enable).is_exist
+        self.aios_data.plate_exist = _FileChecker(*self.loc_plate_exist).is_exist
         return self.aios_data
     @value.setter #write method_status.csv file
     def value(self, obj:AiosData)->None:
@@ -127,5 +147,7 @@ class ModelSimulator:
         self.contents_method_status[1][2] = obj.elevator_request
         self.contents_method_status[2][1] = obj.plrn1_name
         self.contents_method_status[3][1] = obj.plrn2_name
-        _FileChecker(*self.info_method_status).contents = self.contents_method_status
-        _FileChecker(*self.info_trc).contents = obj.message
+        _FileChecker(*self.loc_method_status).contents = self.contents_method_status
+        _FileChecker(*self.loc_trc).contents = obj.message
+
+doctest.testmod()
