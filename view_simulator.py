@@ -85,9 +85,10 @@ class Button:
     그 외 버튼은 disabled 상태로 생성
     '''
     def __init__(self, target:tk.LabelFrame, info:dict):
+        self._command_list = [self.button_pressed,]
         self.state = info['state']
         self.obj = tk.Button(
-            target, text = info['text'], command=self.button_pressed, bd=3,
+            target, text = info['text'], command=lambda:[item() for item in self._command_list], bd=3,
             font=font_contents, activebackground='#355EA8',
             activeforeground='#FFFFFF', disabledforeground='#7F7F7F',
             state= info['state']
@@ -104,6 +105,20 @@ class Button:
             self.contents = "active"
         elif self.state == 'active':
             self.contents = 'normal'
+    @property
+    def command_list(self)->list:
+        '''
+        button 객체에 클릭 이벤트 발생 시 수행할 메서드 리스트를 반환한다.
+        '''
+        return self._command_list
+    @command_list.setter
+    def command_list(self, func:function)->None:
+        '''
+        button 객체에 클릭 이벤트 발생 시 수행할 메서드 리스트를 설정한다.
+        추가의 형태로 더해지므로 넣는 걸 잘 해야 한다.
+        '''
+        self._command_list.append(func)
+        self.obj.config(command=lambda:[item() for item in self._command_list])
     @property
     def contents(self)->str:
         '''
@@ -164,3 +179,47 @@ class LabelFrame:
         elif isinstance(printing_info, str):
             message = printing_info
         self.message.configure(text=message)
+
+
+if __name__ == '__main__':
+    view_title = LabelFrame(window_frame, info_title)
+    view_cfx_status = LabelFrame(window_frame, info_cfx_status)
+    view_method_status = LabelFrame(window_frame, info_method_status)
+    view_elevator_enable = LabelFrame(window_frame, info_elevator_enable)
+    view_plate_exist = LabelFrame(window_frame, info_plate_exist)
+    view_control_log = LabelFrame(window_frame, info_control_log)
+    view_auto_run = LabelFrame(window_frame, info_auto_run)
+    view_error_simulation = LabelFrame(window_frame, info_error_simulation)
+    view_button_1plate = Button(view_auto_run.label_frame, info_button_1plate)
+    view_button_2plate = Button(view_auto_run.label_frame, info_button_2plate)
+    view_button_abort1 = Button(view_auto_run.label_frame, info_button_abort1)
+    view_button_abort2 = Button(view_auto_run.label_frame, info_button_abort2)
+    view_button_abort3 = Button(view_auto_run.label_frame, info_button_abort3)
+    view_button_run = Button(view_auto_run.label_frame, info_button_run)
+    view_button_error1 = Button(view_error_simulation.label_frame, info_button_error1)
+    view_button_error2 = Button(view_error_simulation.label_frame, info_button_error2)
+    view_button_error3 = Button(view_error_simulation.label_frame, info_button_error3)
+    view_button_error4 = Button(view_error_simulation.label_frame, info_button_error4)
+    view_button_error5 = Button(view_error_simulation.label_frame, info_button_error5)
+    view_button_error6 = Button(view_error_simulation.label_frame, info_button_error6)
+    view_button_reset1 = Button(view_error_simulation.label_frame, info_button_reset1)
+    view_button_reset2 = Button(view_error_simulation.label_frame, info_button_reset2)
+    list_array_method_status = [
+                                ["Method","run,",""],
+                                ["Elevator","requeset,",""],
+                                ["Plrn1,",""],
+                                ["Plrn2,",""],
+                            ]
+    list_array_cfx_status = [
+                            ["CFX#1","00:00:00"],
+                            ["CFX#2","00:00:00"],
+                            ["Control Status,","0"],
+                            ]
+    view_cfx_status.contents = list_array_cfx_status
+    view_method_status.contents = list_array_method_status
+    view_elevator_enable.contents = "Existing"
+    view_plate_exist.contents ="Non existing"
+    view_control_log.contents = "Test messageblah, blah, blah~~~~~~~~~~~~~~~~~~~ㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇ~`"
+    view_title.contents = "AIOS Version 0.0"
+    window_frame.mainloop()
+    print("HelloWorld")
