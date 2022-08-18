@@ -1,22 +1,35 @@
 from dataclasses import dataclass
-from model_simulator import ModelSimulator, AiosData, _FileChecker
+from model_simulator import *
+from model_simulator import _FileChecker
 import os
 import unittest
 
 class TestModelSimulator(unittest.TestCase):
     def setUp(self) -> None: #기본 테스트 함수, 각 테스트 수행 시마다 자동으로 호출
+        '''
+        유닛 테스트 수행 전 필요한 밑작업 수행
+        - 테스트용 더미 객체 생성
+        - 테스트용 임시 폴더 생성
+        - 사용하는 파일명 및 경로 수정
+        - 테스트용 더미 AiosData 데이터 생성
+        '''
         self.model_simulator = ModelSimulator()
         test_dir = "d:/test_simulator/"
         if "test_simulator" in os.listdir("d:/"):
             import shutil
             shutil.rmtree("/test_simulator")
         os.mkdir(test_dir)
-        self.model_simulator.info_cfx_status = (test_dir,"test.csv")
-        self.model_simulator.info_elevator_enable = (test_dir,"test.csv")
-        self.model_simulator.info_plate_exist = (test_dir,"test.csv")
-        self.model_simulator.info_method_status = (test_dir,"test.csv")
-        self.model_simulator.info_trc = (test_dir,"test.trc")
-        self.test = AiosData(
+        info_cfx_status['path'] = test_dir
+        info_cfx_status['name'] ="test.csv"
+        info_elevator_enable['path'] = test_dir
+        info_elevator_enable['name'] = "test.csv"
+        info_plate_exist['path'] = test_dir
+        info_plate_exist['name'] = "test.csv"
+        info_method_status['path'] = test_dir
+        info_method_status['name'] = "test.csv"
+        info_trc['path'] = test_dir
+        info_trc['name'] = "test.trc"
+        self.test_aiosdata = AiosData(
             cfx_status = [],
             method_status = [],
             elevator_enable = "",
@@ -27,7 +40,10 @@ class TestModelSimulator(unittest.TestCase):
             plrn2_name = "test_plrn2.plrn",
             message = "test message"
         )
-    def tearDown(self) -> None:
+    def tearDown(self) -> None: #기본 테스트 함수, 각 테스트 수행 시마다 자동으로 호출
+        '''
+        유닛 테스트 수행 후 뒷처리 작업 수행
+        '''
         pass
     def test_value_method_of_model(self):
         self.assertEqual("Non existing",
@@ -36,14 +52,16 @@ class TestModelSimulator(unittest.TestCase):
         self.assertEqual("Non existing",
                          self.model_simulator.value.plate_exist,
                          msg="파일 확인용, 파일 자체가 없으므로 없다고 해야 함")
-        self.model_simulator.value = self.test # method_status.csv, elevator_enable.csv, 
-                                               #plate_exist.csv 파일 생성
+        # method_status.csv, elevator_enable.csv, plate_exist.csv 역할을 수행할 
+        # text.csv 파일 생성
+        # 또한 contents_method_status를 test_aiosdata의 것으로 갱신
+        self.model_simulator.value = self.test_aiosdata 
         self.assertEqual([['Method', 'run,', '0'],
                           ['Elevator', 'requeset,', '0'],
                           ['Plrn1,', 'test_plrn1.plrn'],
                           ['Plrn2,', 'test_plrn2.plrn']],
-                        self.model_simulator.contents_method_status,
-                        "파일 생성 중 contents_method_status를 수정, 내용이 위와 같아야 함")
+                        contents_method_status,
+                        "파일 생성 후 contents_method_status를 수정, 내용이 위와 같아야 함")
         self.assertEqual("Existing",
                          self.model_simulator.value.elevator_enable,
                          msg="파일 확인용, 생성 이후이므로 있다고 해야 함")
@@ -51,10 +69,10 @@ class TestModelSimulator(unittest.TestCase):
                          self.model_simulator.value.plate_exist,
                          msg="파일 확인용, 생성 이후이므로 있다고 해야 함")
         self.assertEqual(self.model_simulator.value.cfx_status,
-                        self.model_simulator.contents_method_status,
+                        contents_method_status,
                         "method_status.csv파일을 읽어 이를 그대로 cfx_status에 저장 후 비교, 같아야 함")
-        self.assertEqual([self.test.message],
-                         _FileChecker(*self.model_simulator.info_trc).contents,
+        self.assertEqual([self.test_aiosdata.message],
+                         _FileChecker(**info_trc).contents,
                          "생성된 trc 파일을 txt로 읽어 비교한다. 같아야 한다.")
 
 if __name__ == "__main__":
