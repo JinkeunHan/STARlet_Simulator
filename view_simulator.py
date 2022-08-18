@@ -5,8 +5,9 @@ STARlet Simulator의 뷰 역할을 수행하는 모듈이다.
 '''
 import tkinter.font as tkFont
 import tkinter as tk
+from tkinter import filedialog
+from tkinter import messagebox
 
-#Start
 SIM_VERISON = "v1.0"
 window_frame = tk.Tk()
 
@@ -78,6 +79,12 @@ info_error_simulation = {
 	'text':"Error Simulation",
     'place':{'x':57, 'y':369, 'width':235, 'height':170},
 	}
+info_plrn_file = {
+    'initialdir':"d:",
+    'title':"plrn 파일을 선택해 주세요.",
+    'filetypes':(("*.plrn, *plrn"), ("*.txt, *txt"))
+}
+
 class Button:
     '''
     시뮬레이터 버튼 제어용 클래스
@@ -85,10 +92,11 @@ class Button:
     그 외 버튼은 disabled 상태로 생성
     '''
     def __init__(self, target:tk.LabelFrame, info:dict):
-        self._command_list = [self.button_pressed,]
+        self._command_list = [self._button_pressed,]
         self.state = info['state']
         self.obj = tk.Button(
-            target, text = info['text'], command=lambda:[item() for item in self._command_list], bd=3,
+            target, text = info['text'],
+            command=lambda:[item() for item in self._command_list], bd=3,
             font=font_contents, activebackground='#355EA8',
             activeforeground='#FFFFFF', disabledforeground='#7F7F7F',
             state= info['state']
@@ -96,10 +104,9 @@ class Button:
         self.contents = self.state
         self.obj.place(x=96*(info['order']%2)+6*(info['order']%2)+17,
                        y=35*(info['order']//2)+3, width=96, height=32)
-    def button_pressed(self):
+    def _button_pressed(self):
         '''
-        사용자가 버튼 누를 시 일단 여기로 오도록 설정 함
-        추후 변경될 수 있음
+        사용자가 버튼 누를 때마다 동작, 상태 변경용
         '''
         if self.state == "normal":
             self.contents = "active"
@@ -112,9 +119,10 @@ class Button:
         '''
         return self._command_list
     @command_list.setter
-    def command_list(self, func:function)->None:
+    def command_list(self, func)->None:
         '''
         button 객체에 클릭 이벤트 발생 시 수행할 메서드 리스트를 설정한다.
+        인수가 없는 메서드만을 입력해야 한다.
         추가의 형태로 더해지므로 넣는 걸 잘 해야 한다.
         '''
         self._command_list.append(func)
@@ -157,8 +165,7 @@ class LabelFrame:
             self.message = tk.Message(self.label_frame,
                                       width=info['place'].get('width')
                                             -info['message_place'].get('x'),
-                                      **info['message_config'], bg='#FFFFFF'
-                                     )
+                                      **info['message_config'], bg='#FFFFFF')
             self.message.place(**info['message_place'])
     @property
     def contents(self):
@@ -180,46 +187,150 @@ class LabelFrame:
             message = printing_info
         self.message.configure(text=message)
 
+class ViewSimulator():
+    '''
+    STARlet Simuator의 뷰 객체들의 응집체
+    객체 생성 시 관련 뷰 객체들을 생성한다.
+    또한 버튼 객체들 간의 이미지 조율을 담당한다.
+    '''
+    def __init__(self):
+        self._init_label_frame()
+        self._init_buttons()
+        self.plrn_flag = False
+        self.auto_run_flag = False
+        self.plrn_file = ("","")
+
+    def _init_label_frame(self):
+        '''
+        초기 실행 시 __init__에 의해 자동으로 호출
+        라벨 프레임 객체를 자동으로 생성한다.
+        반드시 _init_buttons보다 먼저 호출해야 한다.
+        '''
+        self.title = LabelFrame(window_frame, info_title)
+        self.cfx_status = LabelFrame(window_frame, info_cfx_status)
+        self.method_status = LabelFrame(window_frame, info_method_status)
+        self.elevator_enable = LabelFrame(window_frame, info_elevator_enable)
+        self.plate_exist = LabelFrame(window_frame, info_plate_exist)
+        self.control_log = LabelFrame(window_frame, info_control_log)
+        self.auto_run = LabelFrame(window_frame, info_auto_run).label_frame
+        self.error_simulation = LabelFrame(window_frame, info_error_simulation).label_frame
+
+    def _init_buttons(self):
+        '''
+        초기 실행 시 __init__에 의해 자동으로 호출
+        버튼 객체를 생성하고, 본 클래스의 _update_button 메서드를 추가로 바인딩한다.
+        '''
+        self.button_1plate = Button(self.auto_run, info_button_1plate)
+        self.button_2plate = Button(self.auto_run, info_button_2plate)
+        self.button_abort1 = Button(self.auto_run, info_button_abort1)
+        self.button_abort2 = Button(self.auto_run, info_button_abort2)
+        self.button_abort3 = Button(self.auto_run, info_button_abort3)
+        self.button_run = Button(self.auto_run, info_button_run)
+        self.button_error1 = Button(self.error_simulation, info_button_error1)
+        self.button_error2 = Button(self.error_simulation, info_button_error2)
+        self.button_error3 = Button(self.error_simulation, info_button_error3)
+        self.button_error4 = Button(self.error_simulation, info_button_error4)
+        self.button_error5 = Button(self.error_simulation, info_button_error5)
+        self.button_error6 = Button(self.error_simulation, info_button_error6)
+        self.button_reset1 = Button(self.error_simulation, info_button_reset1)
+        self.button_reset2 = Button(self.error_simulation, info_button_reset2)
+
+        self.button_1plate.command_list = self._file_select
+        self.button_1plate.command_list = self._update_button
+        self.button_2plate.command_list = self._file_select
+        self.button_2plate.command_list = self._update_button
+        self.button_abort1.command_list = self._update_button
+        self.button_abort2.command_list = self._update_button
+        self.button_abort3.command_list = self._update_button
+        self.button_run.command_list = self._update_button
+        self.button_error1.command_list = self._update_button
+        self.button_error2.command_list = self._update_button
+        self.button_error3.command_list = self._update_button
+        self.button_error4.command_list = self._update_button
+        self.button_error5.command_list = self._update_button
+        self.button_error6.command_list = self._update_button
+        self.button_reset1.command_list = self._update_button
+        self.button_reset2.command_list = self._update_button
+
+    def _buttons_error_simulation(self, state:str):
+        '''
+        Error_Simulation label frame에 있는 버튼들은
+        동작 형태가 같아 하나로 모아 관리
+        '''
+        self.button_error1.contents = state
+        self.button_error2.contents = state
+        self.button_error3.contents = state
+        self.button_error4.contents = state
+        self.button_error5.contents = state
+        self.button_error6.contents = state
+        self.button_reset1.contents = state
+        self.button_reset2.contents = state
+
+    def _buttons_auto_run(self, state:str, exception:Button=None):
+        '''
+        Error_Simulation label frame에 있는 버튼들은
+        동작 형태가 같아 하나로 모아 관리
+        인수로 exception을 받으며, exception이 있으면 해당 버튼의 상태는 안 바꿈.
+        '''
+        for item in (self.button_abort1, self.button_abort2,\
+            self.button_abort3, self.button_run):
+            if item is not exception:
+                item.contents = state
+
+    def _file_select(self):
+        if 'active' in (self.button_1plate.contents, self.button_2plate.contents):
+            file = filedialog.askopenfile(**info_plrn_file)
+            if file is None:
+                messagebox.showwarning("경고", "plrn파일을 선택하세요")
+                self.button_1plate.contents = "normal"
+                self.button_2plate.contents = "normal"
+            else:
+                if 'active' in self.button_1plate.contents:
+                    self.plrn_file = ("1plate",file.name)
+                else:
+                    self.plrn_file = ("2plate",file.name)
+
+    def _update_button(self):
+        '''
+        tkinter의 command와 binding 되어 event 기반으로 동작하는 method다.
+        contents를 통해 얻어온 state를 바탕으로 이미지를 바꾸는 역할을 수행한다.
+        또한 plrn_flag와 run_flag를 여기서 세우고 끈다.
+        '''
+        if 'active' in self.button_1plate.contents:
+            self.button_2plate.contents = 'normal'
+            self.plrn_flag = True
+        elif 'active' in self.button_2plate.contents:
+            self.button_1plate.contents = 'normal'
+            self.plrn_flag = True
+        else:
+            self.plrn_flag = False
+            self._buttons_auto_run('normal') #눌린 상태로 존재하는 것 방지용.
+
+        if 'active' in (self.button_abort1.contents, self.button_abort2.contents,\
+                        self.button_abort3.contents, self.button_run.contents):
+            self.auto_run_flag = True
+        else:
+            self.auto_run_flag = False
+
+        if self.plrn_flag:
+            if not self.auto_run_flag:
+                self._buttons_auto_run('normal')
+        else:
+            self._buttons_auto_run('disabled')
+
+        self._buttons_error_simulation('disabled')
+
+        if 'active' in self.button_run.contents:
+            self._buttons_auto_run('disabled', exception=self.button_run)
+            self._buttons_error_simulation('normal')
+        elif 'active' in self.button_abort1.contents:
+            self._buttons_auto_run('disabled', exception=self.button_abort1)
+        elif 'active' in self.button_abort2.contents:
+            self._buttons_auto_run('disabled', exception=self.button_abort2)
+        elif 'active' in self.button_abort3.contents:
+            self._buttons_auto_run('disabled', exception=self.button_abort3)
 
 if __name__ == '__main__':
-    view_title = LabelFrame(window_frame, info_title)
-    view_cfx_status = LabelFrame(window_frame, info_cfx_status)
-    view_method_status = LabelFrame(window_frame, info_method_status)
-    view_elevator_enable = LabelFrame(window_frame, info_elevator_enable)
-    view_plate_exist = LabelFrame(window_frame, info_plate_exist)
-    view_control_log = LabelFrame(window_frame, info_control_log)
-    view_auto_run = LabelFrame(window_frame, info_auto_run)
-    view_error_simulation = LabelFrame(window_frame, info_error_simulation)
-    view_button_1plate = Button(view_auto_run.label_frame, info_button_1plate)
-    view_button_2plate = Button(view_auto_run.label_frame, info_button_2plate)
-    view_button_abort1 = Button(view_auto_run.label_frame, info_button_abort1)
-    view_button_abort2 = Button(view_auto_run.label_frame, info_button_abort2)
-    view_button_abort3 = Button(view_auto_run.label_frame, info_button_abort3)
-    view_button_run = Button(view_auto_run.label_frame, info_button_run)
-    view_button_error1 = Button(view_error_simulation.label_frame, info_button_error1)
-    view_button_error2 = Button(view_error_simulation.label_frame, info_button_error2)
-    view_button_error3 = Button(view_error_simulation.label_frame, info_button_error3)
-    view_button_error4 = Button(view_error_simulation.label_frame, info_button_error4)
-    view_button_error5 = Button(view_error_simulation.label_frame, info_button_error5)
-    view_button_error6 = Button(view_error_simulation.label_frame, info_button_error6)
-    view_button_reset1 = Button(view_error_simulation.label_frame, info_button_reset1)
-    view_button_reset2 = Button(view_error_simulation.label_frame, info_button_reset2)
-    list_array_method_status = [
-                                ["Method","run,",""],
-                                ["Elevator","requeset,",""],
-                                ["Plrn1,",""],
-                                ["Plrn2,",""],
-                            ]
-    list_array_cfx_status = [
-                            ["CFX#1","00:00:00"],
-                            ["CFX#2","00:00:00"],
-                            ["Control Status,","0"],
-                            ]
-    view_cfx_status.contents = list_array_cfx_status
-    view_method_status.contents = list_array_method_status
-    view_elevator_enable.contents = "Existing"
-    view_plate_exist.contents ="Non existing"
-    view_control_log.contents = "Test messageblah, blah, blah~~~~~~~~~~~~~~~~~~~ㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇ~`"
-    view_title.contents = "AIOS Version 0.0"
+    view_simulator = ViewSimulator()
     window_frame.mainloop()
     print("HelloWorld")
