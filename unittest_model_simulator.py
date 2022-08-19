@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from model_simulator import *
-from model_simulator import _FileChecker
+from model_simulator import FileChecker
 import os
 import unittest
 
@@ -20,25 +20,28 @@ class TestModelSimulator(unittest.TestCase):
             shutil.rmtree("/test_simulator")
         os.mkdir(test_dir)
         info_cfx_status['path'] = test_dir
-        info_cfx_status['name'] ="test.csv"
+        info_cfx_status['name'] ="CFX_status.csv"
         info_elevator_enable['path'] = test_dir
-        info_elevator_enable['name'] = "test.csv"
+        info_elevator_enable['name'] = "CFX_status.csv"
         info_plate_exist['path'] = test_dir
-        info_plate_exist['name'] = "test.csv"
+        info_plate_exist['name'] = "Method_status.csv"
         info_method_status['path'] = test_dir
-        info_method_status['name'] = "test.csv"
+        info_method_status['name'] = "Method_status.csv"
         info_trc['path'] = test_dir
         info_trc['name'] = "test.trc"
         self.test_aiosdata = AiosData(
-            cfx_status = [],
-            method_status = [],
+            cfx_status = contents_cfx_status,
+            method_status = contents_method_status,
             elevator_enable = "",
             plate_exist = "",
             method_run = "0",
             elevator_request = "0",
             plrn1_name = "test_plrn1.plrn",
             plrn2_name = "test_plrn2.plrn",
-            message = "test message"
+            message = "test message",
+            cfx1_time = "00:00:00",
+            cfx2_time = "01:23:45",
+            control_status = '3'
         )
     def tearDown(self) -> None: #기본 테스트 함수, 각 테스트 수행 시마다 자동으로 호출
         '''
@@ -52,16 +55,14 @@ class TestModelSimulator(unittest.TestCase):
         self.assertEqual("Non existing",
                          self.model_simulator.value.plate_exist,
                          msg="파일 확인용, 파일 자체가 없으므로 없다고 해야 함")
-        # method_status.csv, elevator_enable.csv, plate_exist.csv 역할을 수행할 
-        # text.csv 파일 생성
-        # 또한 contents_method_status를 test_aiosdata의 것으로 갱신
-        self.model_simulator.value = self.test_aiosdata 
+        FileChecker(**info_cfx_status).contents = self.test_aiosdata.cfx_status #CFX_status.csv 생성
+        self.model_simulator.value = self.test_aiosdata #Method_status.csv, test.trc 생성
         self.assertEqual([['Method', 'run,', '0'],
                           ['Elevator', 'requeset,', '0'],
                           ['Plrn1,', 'test_plrn1.plrn'],
                           ['Plrn2,', 'test_plrn2.plrn']],
                         contents_method_status,
-                        "파일 생성 후 contents_method_status를 수정, 내용이 위와 같아야 함")
+                        "파일 생성 시 contents_method_status를 수정, 내용이 위와 같아야 함")
         self.assertEqual("Existing",
                          self.model_simulator.value.elevator_enable,
                          msg="파일 확인용, 생성 이후이므로 있다고 해야 함")
@@ -69,10 +70,10 @@ class TestModelSimulator(unittest.TestCase):
                          self.model_simulator.value.plate_exist,
                          msg="파일 확인용, 생성 이후이므로 있다고 해야 함")
         self.assertEqual(self.model_simulator.value.cfx_status,
-                        contents_method_status,
+                        contents_cfx_status,
                         "method_status.csv파일을 읽어 이를 그대로 cfx_status에 저장 후 비교, 같아야 함")
         self.assertEqual([self.test_aiosdata.message],
-                         _FileChecker(**info_trc).contents,
+                         FileChecker(**info_trc).contents,
                          "생성된 trc 파일을 txt로 읽어 비교한다. 같아야 한다.")
 
 if __name__ == "__main__":

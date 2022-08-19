@@ -20,7 +20,6 @@ font_labelframe = tkFont.Font(family="Arial", size=14, weight='bold', underline=
 font_contents = tkFont.Font(family="Arial", size=12)
 font_title = tkFont.Font(family="Arial", size=18, weight='bold', underline=0)
 
-# info_version = InfoLabel(39, 6, "STARlet Simulator"+SIM_VERISON)
 info_button_1plate = {'order':0, 'state':"normal", 'text':"1plate"}
 info_button_2plate = {'order':1, 'state':"normal", 'text':"2plate"}
 info_button_abort1 = {'order':2, 'state':"disabled", 'text':"Abort1"}
@@ -92,32 +91,32 @@ class Button:
     그 외 버튼은 disabled 상태로 생성
     '''
     def __init__(self, target:tk.LabelFrame, info:dict):
-        self._command_list = [self._button_pressed,]
-        self.state = info['state']
-        self.obj = tk.Button(
+        self.__command_list = [self.__button_pressed,]
+        self.__state = info['state']
+        self.__obj = tk.Button(
             target, text = info['text'],
-            command=lambda:[item() for item in self._command_list], bd=3,
+            command=lambda:[item() for item in self.__command_list], bd=3,
             font=font_contents, activebackground='#355EA8',
             activeforeground='#FFFFFF', disabledforeground='#7F7F7F',
             state= info['state']
         )
-        self.contents = self.state
-        self.obj.place(x=96*(info['order']%2)+6*(info['order']%2)+17,
+        self.contents = self.__state
+        self.__obj.place(x=96*(info['order']%2)+6*(info['order']%2)+17,
                        y=35*(info['order']//2)+3, width=96, height=32)
-    def _button_pressed(self):
+    def __button_pressed(self):
         '''
         사용자가 버튼 누를 때마다 동작, 상태 변경용
         '''
-        if self.state == "normal":
+        if self.__state == "normal":
             self.contents = "active"
-        elif self.state == 'active':
+        elif self.__state == 'active':
             self.contents = 'normal'
     @property
     def command_list(self)->list:
         '''
         button 객체에 클릭 이벤트 발생 시 수행할 메서드 리스트를 반환한다.
         '''
-        return self._command_list
+        return self.__command_list
     @command_list.setter
     def command_list(self, func)->None:
         '''
@@ -125,28 +124,28 @@ class Button:
         인수가 없는 메서드만을 입력해야 한다.
         추가의 형태로 더해지므로 넣는 걸 잘 해야 한다.
         '''
-        self._command_list.append(func)
-        self.obj.config(command=lambda:[item() for item in self._command_list])
+        self.__command_list.append(func)
+        self.__obj.config(command=lambda:[item() for item in self.__command_list])
     @property
     def contents(self)->str:
         '''
         버튼의 상태를 알기 위한 메소드
         '''
-        return self.state
+        return self.__state
     @contents.setter
     def contents(self, state:str)->None:
         '''
         버튼의 이미지 및 상태를 바꾸는 용도이다. normal, disabled 및 active에
         맞춰 설정해야 한다.
         '''
-        self.state = state
+        self.__state = state
         if state == "normal":
-            self.obj.configure(bg='#4472C4', fg='#FFFFFF',state='normal',
+            self.__obj.configure(bg='#4472C4', fg='#FFFFFF',state='normal',
                                relief='raised')
         elif state == "disabled":
-            self.obj.configure(bg='#D9D9D9', fg='#7F7F7F',state='disabled')
+            self.__obj.configure(bg='#D9D9D9', fg='#7F7F7F',state='disabled')
         elif state == 'active':
-            self.obj.configure(bg='#355EA8', fg='#FFFFFF',state='active',
+            self.__obj.configure(bg='#355EA8', fg='#FFFFFF',state='active',
                                relief='sunken')
 class LabelFrame:
     '''
@@ -155,7 +154,6 @@ class LabelFrame:
     상기 7개를 보여주기 위한 라벨 프레임 클래스
     '''
     def __init__(self, master:tk.Tk, info:dict):
-        self.info = info
         self.label_frame = tk.LabelFrame(master, text=info['text'],
                                          bg='#FFFFFF',
                                          font=font_labelframe,
@@ -194,13 +192,13 @@ class ViewSimulator():
     또한 버튼 객체들 간의 이미지 조율을 담당한다.
     '''
     def __init__(self):
-        self._init_label_frame()
-        self._init_buttons()
+        self.__init_label_frame()
+        self.__init_buttons()
         self.plrn_flag = False
         self.auto_run_flag = False
-        self.plrn_file = ("","")
+        self.__plrn_info = {'scenario': '', 'plrn_name': ''}
 
-    def _init_label_frame(self):
+    def __init_label_frame(self):
         '''
         초기 실행 시 __init__에 의해 자동으로 호출
         라벨 프레임 객체를 자동으로 생성한다.
@@ -215,7 +213,7 @@ class ViewSimulator():
         self.auto_run = LabelFrame(window_frame, info_auto_run).label_frame
         self.error_simulation = LabelFrame(window_frame, info_error_simulation).label_frame
 
-    def _init_buttons(self):
+    def __init_buttons(self):
         '''
         초기 실행 시 __init__에 의해 자동으로 호출
         버튼 객체를 생성하고, 본 클래스의 _update_button 메서드를 추가로 바인딩한다.
@@ -235,24 +233,24 @@ class ViewSimulator():
         self.button_reset1 = Button(self.error_simulation, info_button_reset1)
         self.button_reset2 = Button(self.error_simulation, info_button_reset2)
 
-        self.button_1plate.command_list = self._file_select
-        self.button_1plate.command_list = self._update_button
-        self.button_2plate.command_list = self._file_select
-        self.button_2plate.command_list = self._update_button
-        self.button_abort1.command_list = self._update_button
-        self.button_abort2.command_list = self._update_button
-        self.button_abort3.command_list = self._update_button
-        self.button_run.command_list = self._update_button
-        self.button_error1.command_list = self._update_button
-        self.button_error2.command_list = self._update_button
-        self.button_error3.command_list = self._update_button
-        self.button_error4.command_list = self._update_button
-        self.button_error5.command_list = self._update_button
-        self.button_error6.command_list = self._update_button
-        self.button_reset1.command_list = self._update_button
-        self.button_reset2.command_list = self._update_button
+        self.button_1plate.command_list = self.__file_select
+        self.button_1plate.command_list = self.__update_button
+        self.button_2plate.command_list = self.__file_select
+        self.button_2plate.command_list = self.__update_button
+        self.button_abort1.command_list = self.__update_button
+        self.button_abort2.command_list = self.__update_button
+        self.button_abort3.command_list = self.__update_button
+        self.button_run.command_list = self.__update_button
+        self.button_error1.command_list = self.__update_button
+        self.button_error2.command_list = self.__update_button
+        self.button_error3.command_list = self.__update_button
+        self.button_error4.command_list = self.__update_button
+        self.button_error5.command_list = self.__update_button
+        self.button_error6.command_list = self.__update_button
+        self.button_reset1.command_list = self.__update_button
+        self.button_reset2.command_list = self.__update_button
 
-    def _buttons_error_simulation(self, state:str):
+    def __buttons_error_simulation(self, state:str):
         '''
         Error_Simulation label frame에 있는 버튼들은
         동작 형태가 같아 하나로 모아 관리
@@ -266,7 +264,7 @@ class ViewSimulator():
         self.button_reset1.contents = state
         self.button_reset2.contents = state
 
-    def _buttons_auto_run(self, state:str, exception:Button=None):
+    def __buttons_auto_run(self, state:str, exception:Button=None):
         '''
         Error_Simulation label frame에 있는 버튼들은
         동작 형태가 같아 하나로 모아 관리
@@ -277,7 +275,7 @@ class ViewSimulator():
             if item is not exception:
                 item.contents = state
 
-    def _file_select(self):
+    def __file_select(self):
         if 'active' in (self.button_1plate.contents, self.button_2plate.contents):
             file = filedialog.askopenfile(**info_plrn_file)
             if file is None:
@@ -286,11 +284,13 @@ class ViewSimulator():
                 self.button_2plate.contents = "normal"
             else:
                 if 'active' in self.button_1plate.contents:
-                    self.plrn_file = ("1plate",file.name)
+                    self.__plrn_info['scenario'] = "1plate"
+                    self.__plrn_info['plrn_name'] = file.name
                 else:
-                    self.plrn_file = ("2plate",file.name)
+                    self.__plrn_info['scenario'] = "2plate"
+                    self.__plrn_info['plrn_name'] = file.name
 
-    def _update_button(self):
+    def __update_button(self):
         '''
         tkinter의 command와 binding 되어 event 기반으로 동작하는 method다.
         contents를 통해 얻어온 state를 바탕으로 이미지를 바꾸는 역할을 수행한다.
@@ -304,7 +304,7 @@ class ViewSimulator():
             self.plrn_flag = True
         else:
             self.plrn_flag = False
-            self._buttons_auto_run('normal') #눌린 상태로 존재하는 것 방지용.
+            self.__buttons_auto_run('normal') #눌린 상태로 존재하는 것 방지용.
 
         if 'active' in (self.button_abort1.contents, self.button_abort2.contents,\
                         self.button_abort3.contents, self.button_run.contents):
@@ -314,21 +314,27 @@ class ViewSimulator():
 
         if self.plrn_flag:
             if not self.auto_run_flag:
-                self._buttons_auto_run('normal')
+                self.__buttons_auto_run('normal')
         else:
-            self._buttons_auto_run('disabled')
+            self.__buttons_auto_run('disabled')
 
-        self._buttons_error_simulation('disabled')
+        self.__buttons_error_simulation('disabled')
 
         if 'active' in self.button_run.contents:
-            self._buttons_auto_run('disabled', exception=self.button_run)
-            self._buttons_error_simulation('normal')
+            self.__buttons_auto_run('disabled', exception=self.button_run)
+            self.__buttons_error_simulation('normal')
         elif 'active' in self.button_abort1.contents:
-            self._buttons_auto_run('disabled', exception=self.button_abort1)
+            self.__buttons_auto_run('disabled', exception=self.button_abort1)
         elif 'active' in self.button_abort2.contents:
-            self._buttons_auto_run('disabled', exception=self.button_abort2)
+            self.__buttons_auto_run('disabled', exception=self.button_abort2)
         elif 'active' in self.button_abort3.contents:
-            self._buttons_auto_run('disabled', exception=self.button_abort3)
+            self.__buttons_auto_run('disabled', exception=self.button_abort3)
+
+    def get_plrn(self)->dict:
+        '''
+        plrn 파일 명 및 1plate 또는 2plate 시나리오를 알림
+        '''
+        return self.__plrn_info
 
 if __name__ == '__main__':
     view_simulator = ViewSimulator()
