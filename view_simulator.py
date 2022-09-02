@@ -3,9 +3,10 @@ STARlet Simulator의 뷰 역할을 수행하는 모듈이다.
 라벨 프레임 클래스와 버튼 클래스를 갖는다.
 라벨 프레임 클래스는 내부에 메세지 위젯을 통해 내용을 표시하고 갱신한다.
 '''
-import tkinter.font as tkFont
+from socket import TCP_KEEPCNT
 import tkinter as tk
-from tkinter import filedialog
+import tkinter.font as tkFont
+from tkinter import Tk, filedialog
 from tkinter import messagebox
 
 SIM_VERISON = "v1.0"
@@ -194,8 +195,6 @@ class ViewSimulator():
     def __init__(self):
         self._init_label_frame()
         self._init_buttons()
-        self.plrn_flag = False
-        self.auto_run_flag = False
         self.__plrn_info = {'scenario': '', 'plrn_name': ''}
 
     def _init_label_frame(self):
@@ -296,24 +295,26 @@ class ViewSimulator():
         contents를 통해 얻어온 state를 바탕으로 이미지를 바꾸는 역할을 수행한다.
         또한 plrn_flag와 run_flag를 여기서 세우고 끈다.
         '''
+        plrn_flag = False
+        auto_run_flag = False
         if 'active' in self.button_1plate.contents:
             self.button_2plate.contents = 'normal'
-            self.plrn_flag = True
+            plrn_flag = True
         elif 'active' in self.button_2plate.contents:
             self.button_1plate.contents = 'normal'
-            self.plrn_flag = True
+            plrn_flag = True
         else:
-            self.plrn_flag = False
+            plrn_flag = False
             self._buttons_auto_run('normal') #눌린 상태로 존재하는 것 방지용.
 
         if 'active' in (self.button_abort1.contents, self.button_abort2.contents,\
                         self.button_abort3.contents, self.button_run.contents):
-            self.auto_run_flag = True
+            auto_run_flag = True
         else:
-            self.auto_run_flag = False
+            auto_run_flag = False
 
-        if self.plrn_flag:
-            if not self.auto_run_flag:
+        if plrn_flag:
+            if not auto_run_flag:
                 self._buttons_auto_run('normal')
         else:
             self._buttons_auto_run('disabled')
