@@ -2,7 +2,7 @@
 STARlet Simulator의 모델을 나타내는 모듈이다.
 3개의 클래스, AiosData, FileChecker, ModelSimulator로 구성된다.
 AiosData를 Presenter와 주고 받는다.
-이는 ModelSimulator의 value를 통해 이루어진다.
+이는 ModelSimulator의 file_data를 통해 이루어진다.
 '''
 import os
 import csv
@@ -50,23 +50,29 @@ class AiosData:
 
 class FileChecker:
     '''
-    비공개 은닉 클래스, 내부에서만 동작하며 객체 단위로 갖는 정보를 바탕으로
+    추후 재사용을 위해 따로 분리한 클래스.
     파일의 존재여부를 확인하거나 내용을 읽고 쓴다.
     '''
     def __init__(self, path, name):
-        self.path = path
-        self.name = name
+        self.__path = path
+        self.__name = name
+
+    @property
+    def path_and_name_is(self)->tuple:
+        '''
+        미리 지정된 경로 및 파일명을 반환한다.
+        경로, 파일명 의 순서이니 주의할 것.
+        '''
+        return (self.__path, self.__name)
+
     @property
     def is_exist(self)->str:
         '''
         self.path 경로의 self.name 이름의 파일 존재 여부를 확인한다.
         '''
-        filenames = os.listdir(self.path)
-        if self.name in filenames:
-            return_value = "Existing"
-        else:
-            return_value = "Non existing"
-        return return_value
+        path, name = self.path_and_name_is
+        filenames = os.listdir(path)
+        return "Existing" if name in filenames else "Non existing"
     @property
     def contents(self)->list or str:
         '''
@@ -76,11 +82,12 @@ class FileChecker:
         '''
         if (return_value:=self.is_exist)== "Non existing":
             return return_value
-        if ".csv" in self.name:
-            with open(self.path+self.name,'r', encoding='utf-8') as f_csv:
+        path, name = self.path_and_name_is
+        if ".csv" in name:
+            with open(path+name,'r', encoding='utf-8') as f_csv:
                 lines = [line for line in csv.reader(f_csv, delimiter=" ") if line]
         else:
-            with open(self.path+self.name,'r', encoding='utf-8') as f_txt:
+            with open(path+name,'r', encoding='utf-8') as f_txt:
                 lines = f_txt.readlines()
         return lines
     @contents.setter
@@ -90,12 +97,13 @@ class FileChecker:
         self.path 경로에 self.name 이름의 파일을 쓴다.
         name의 파일 명을 확인한 다음, csv 파일 또는 trc 파일을 만든다.
         '''
-        if ".csv" in self.name:
-            with open(self.path+self.name,'w', encoding='utf-8') as f_csv:
+        path, name = self.path_and_name_is
+        if ".csv" in name:
+            with open(path+name,'w', encoding='utf-8') as f_csv:
                 for list_value in value:
                     csv.writer(f_csv, lineterminator='\n', delimiter=' ').writerow(list_value)
         else:
-            with open(self.path+self.name,'w', encoding='utf-8') as f_trc:
+            with open(path+name,'w', encoding='utf-8') as f_trc:
                 for string in (string for list in value for string in list):
                     f_trc.write(string)
 
@@ -115,38 +123,56 @@ class ModelSimulator:
             cfx_status= contents_cfx_status,
             method_status = contents_method_status,
         )
-    @property #read CFX_Status.csv file, check Plate_exist and Elevator_enable
-    def value(self)->AiosData:
+
+    @property
+    def aios_data_is(self)->AiosData:
         '''
-        호출 시 cfx_status.csv 파일 내용 및 elevator_enable, plate_exist
-        파일의 존재여부를 갱신한다.
-        또한 CFX1과 CFX2의 남은 시간과 control status를 갱신한다.
-        이후 AiosData를 반환한다.
+        file_data에 의해 갱신된 AiosData를 반환한다.
+        별도의 파일 읽기를 다시 하지 않고 정보를 얻기 위해 따로 보관한다.
         '''
-        self.__aios_data.cfx_status = FileChecker(**info_cfx_status).contents
-        self.__aios_data.elevator_enable = FileChecker(**info_elevator_enable).is_exist
-        self.__aios_data.plate_exist = FileChecker(**info_plate_exist).is_exist
-        if isinstance(self.__aios_data.cfx_status, list):
-            self.__aios_data.cfx1_time = self.__aios_data.cfx_status[0][1]
-            self.__aios_data.cfx2_time = self.__aios_data.cfx_status[1][1]
-            self.__aios_data.control_status = self.__aios_data.cfx_status[2][2]
-        else: #return of "None existing"
-            self.__aios_data.cfx1_time = self.__aios_data.cfx_status
-            self.__aios_data.cfx2_time = self.__aios_data.cfx_status
-            self.__aios_data.control_status = self.__aios_data.cfx_status
         return self.__aios_data
-    @value.setter #write method_status.csv file
-    def value(self, obj:AiosData)->None:
+    @aios_data_is.setter
+    def aios_data_is(self, value:AiosData)->None:
         '''
-        객체.value = 변수:AiosData로 사용한다.
+        file_data에 의해서만 호출되어야 하는 메서드.
+        별도의 파일 읽기를 다시 하지 않고 정보를 얻기 위해 따로 보관하기 위해 존재.
+        '''
+        self.__aios_data = value
+
+    @property
+    def file_data(self)->AiosData:
+        '''
+        호출 시 cfx_status.csv 내용 및 elevator_enable, plate_exist 존재여부를 확인.
+        또한 CFX1과 CFX2의 남은 시간과 control status를 갱신한다.
+        이후 갱신된 정보를 반환한다.
+        '''
+        value = self.aios_data_is
+        value.cfx_status = FileChecker(**info_cfx_status).contents
+        value.elevator_enable = FileChecker(**info_elevator_enable).is_exist
+        value.plate_exist = FileChecker(**info_plate_exist).is_exist
+        if isinstance(value.cfx_status, list):
+            value.cfx1_time = value.cfx_status[0][1]
+            value.cfx2_time = value.cfx_status[1][1]
+            value.control_status = value.cfx_status[2][2]
+        else: #return of "None existing"
+            value.cfx1_time = value.cfx_status
+            value.cfx2_time = value.cfx_status
+            value.control_status = value.cfx_status
+        self.aios_data_is = value
+        return value
+
+    @file_data.setter #write method_status.csv file
+    def file_data(self, obj:AiosData)->None:
+        '''
+        객체.file_data = 변수:AiosData로 사용한다.
         호출 시 두 개의 파일의 내용을 바꾼다.
         - method_status.csv
         - .trc
         '''
-        contents_method_status[0][2] = obj.method_run
-        contents_method_status[1][2] = obj.elevator_request
-        contents_method_status[2][1] = obj.plrn1_name
-        contents_method_status[3][1] = obj.plrn2_name
-        FileChecker(**info_method_status).contents = contents_method_status
+        obj.method_status[0][2] = obj.method_run
+        obj.method_status[1][2] = obj.elevator_request
+        obj.method_status[2][1] = obj.plrn1_name
+        obj.method_status[3][1] = obj.plrn2_name
+        FileChecker(**info_method_status).contents = obj.method_status
         if obj.message:
             FileChecker(**info_trc).contents = obj.message
