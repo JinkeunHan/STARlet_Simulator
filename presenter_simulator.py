@@ -1,7 +1,8 @@
 '''
 STARlet Simulatior의 프레젠터 역할을 수행하는 모듈이다.
 '''
-import threading, time
+import threading
+import time
 from tkinter import messagebox
 from view_simulator import ViewSimulator, window_frame
 from model_simulator import ModelSimulator
@@ -69,6 +70,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         method_status = self.aios_data_is
         method_status.method_run = '2'
         self.file_data = method_status
+        messagebox.showinfo("알림","STARlet is aborted.")
 
     def _simulate_stop_starlet(self):
         method_status = self.aios_data_is
@@ -126,7 +128,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
     def _delay_sec(self, seconds):
         self._time_is = seconds
         while self._time_is:
-            pass
+            window_frame.update()
 
     def _command_run_button(self)->None:
         '''
@@ -172,12 +174,16 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
                 self._delay_sec(5)
                 self._simulate_elevator_request_1st()
                 self._time_is = 30
+                temp_flag = False
                 while self._time_is:
                     cfx_info = self.aios_data_is
                     if "88:88:88" in (cfx_info.cfx1_time, cfx_info.cfx2_time):
-                        self._simulate_plate_transfer_1st()
-                        return
-                messagebox.showinfo("경고","Abort3 시나리오를 실패했습니다.")
+                        temp_flag = True
+                        break
+                if temp_flag:
+                    self._simulate_plate_transfer_1st()
+                else:
+                    messagebox.showinfo("경고","Abort3 시나리오를 실패했습니다.")
             else:
                 messagebox.showinfo("경고","CFX 장비가 모두 동작 중입니다.")
 
@@ -192,13 +198,14 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         elif self.button_abort2.contents == 'active':
             if self._check_cfx_is_available('1plate'):
                 self._simulate_run_starlet()
-                #messagebox.showinfo("알림","Abort2 시나리오를 시작합니다.")
-                window_frame.after(5000)
+                messagebox.showinfo("알림","Abort2 시나리오를 시작합니다.")
+                self._delay_sec(5)
                 self._simulate_elevator_request_1st()
-                window_frame.after(30*1000)
-                cfx_info = self.aios_data_is
-                if "88:88:88" in (cfx_info.cfx1_time, cfx_info.cfx2_time):
-                    self._simulate_abort_starlet()
+                self._delay_sec(30)
+                while (self._time_is)> 0:
+                    cfx_info = self.aios_data_is
+                    if "88:88:88" in (cfx_info.cfx1_time, cfx_info.cfx2_time):
+                        self._simulate_abort_starlet()
             else:
                 messagebox.showinfo("경고","CFX 장비가 모두 동작 중입니다.")
 
