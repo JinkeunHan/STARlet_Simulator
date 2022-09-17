@@ -7,6 +7,7 @@ AiosData를 Presenter와 주고 받는다.
 import os
 import csv
 from dataclasses import dataclass
+from logger_jk import LogClass
 
 info_cfx_status = {'path':"C:/Seegene_Method_Setting/RM_module/",
                    'name':"CFX_status.csv"}
@@ -15,9 +16,12 @@ info_elevator_enable = {'path':"C:/Seegene_Method_Setting/RM_module/elevator_sta
 info_plate_exist = {'path':"C:/Seegene_Method_Setting/RM_module/elevator_status/",
                     'name':"plate_exist.csv"}
 info_method_status = {'path':"C:/Seegene_Method_Setting/RM_module/",
-                      'name':"Method_status.csv"}
-info_trc = {'path':"C:/Program Files (x86)/HAMILTON/LogFile/",
+                      'name':"method_status.csv"}
+info_trc = {'path':"C:/Program Files (x86)/HAMILTON/LogFiles/",
             'name':"test.trc"}
+info_aios_log = {'path':"D:/Release/Logs/Debug/",
+                'name':"test.txt"}
+
 contents_method_status=[
         ["Method","run,",""],
         ["Elevator","requeset,",""],
@@ -48,14 +52,25 @@ class AiosData:
     plate_exist:str = ""
     message:str = ""
 
-class FileChecker:
+class FileChecker(LogClass):
     '''
     추후 재사용을 위해 따로 분리한 클래스.
     파일의 존재여부를 확인하거나 내용을 읽고 쓴다.
     '''
-    def __init__(self, path, name):
-        self.__path = path
-        self.__name = name
+    def __init__(self, path:str, name:str):
+        self.mtime_is:float = 0
+        LogClass.__init__(self, name)
+        self.path_and_name_is = path, self.name_is
+
+    @property
+    def mtime_is(self)->float:#getter
+        '''
+        get modified time in timestamp format.
+        '''
+        return self.__mtime
+    @mtime_is.setter
+    def mtime_is(self, value:float):#setter
+        self.__mtime = value
 
     @property
     def path_and_name_is(self)->tuple:
@@ -63,7 +78,11 @@ class FileChecker:
         미리 지정된 경로 및 파일명을 반환한다.
         경로, 파일명 의 순서이니 주의할 것.
         '''
-        return (self.__path, self.__name)
+        return (self.__path, self.name_is)
+    @path_and_name_is.setter
+    def path_and_name_is(self, path_and_name:tuple):
+        self.__path = path_and_name[0]
+        self.name_is = path_and_name[1]
 
     @property
     def is_exist(self)->str:
@@ -73,25 +92,29 @@ class FileChecker:
         path, name = self.path_and_name_is
         filenames = os.listdir(path)
         return "Existing" if name in filenames else "Non existing"
-    @property
-    def contents(self)->list or str:
+
+    def read_file(self)->list :
         '''
-        self.path 경로의 self.name 이름의 파일을 name의 확장자에 맞춰
-        csv 파일 또는 text 파일을 읽고 그 내용을 리스트로 반환한다.
-        만약 읽고자 하는 파일이 경로에 없다면 Non exsiting 문자열을 반환한다.
+        지정된 경로 내 지정된 이름의 파일을 찾고, 파일 확장자에 맞춰 그 내용을 읽는다.
+        이후 그 내용을 리스트로 반환한다.
+        만약 읽고자 하는 파일이 경로에 없다면 []을 반환한다.
         '''
-        if (return_value:=self.is_exist)== "Non existing":
-            return return_value
+        lines:list[str] = []
+        if self.is_exist== "Non existing":
+            return lines
         path, name = self.path_and_name_is
         if ".csv" in name:
             with open(path+name,'r', encoding='utf-8') as f_csv:
-                lines = [line for line in csv.reader(f_csv, delimiter=" ") if line]
+                lines = f_csv.readlines()
+        elif ".trc" in name:
+            with open(path+name,'r', encoding='utf-8', errors='ignore') as f_txt:
+                lines = f_txt.readlines()
         else:
             with open(path+name,'r', encoding='utf-8') as f_txt:
                 lines = f_txt.readlines()
         return lines
-    @contents.setter
-    def contents(self, value=list)->None:
+
+    def write_file(self, value=list)->None:
         '''
         객체.contents = 변수:list로 사용
         self.path 경로에 self.name 이름의 파일을 쓴다.
@@ -139,6 +162,51 @@ class ModelSimulator:
         '''
         self.__aios_data = value
 
+    def find_recent_file_and_get_time(self, target:FileChecker)->int:
+        '''
+        target 파일과 같은 확장자를 가진 가장 최근에 수정된 파일을 찾는다.
+        만약 파일을 찾지 못하면, target의 이름을 "No file found"
+        찾으면, target의 이름을 "최근 수정된 파일명" 으로 수정한다.
+        이후 수정된 시간을 반환한다. (실패 시 0 반환)
+        '''
+        path, target_file = target.path_and_name_is
+        file_type = target_file.split('.')[1]
+        file_list:list = os.listdir(path)
+        same_typed_files = [[file_name, os.path.getmtime(path+file_name)]
+                            for file_name in file_list
+                            if file_name.find(file_type)>-1]
+        if not same_typed_files:
+            target.name_is = "No file found"
+            result = 0
+        elif target.name_is == info_method_status['name']:
+            sorted_list = sorted(same_typed_files, key=lambda x: x[0], reverse=True)
+            result = sorted_list[0][1]
+        else:
+            sorted_list = sorted(same_typed_files, key=lambda x: x[1], reverse=True)
+            target.name_is = sorted_list[0][0]
+            result = sorted_list[0][1]
+        return result
+
+    def check_file_updated_or_not(self, target:FileChecker)->bool:
+        '''
+        타겟 파일 업데이트 여부를 확인한다.
+        업데이트 되었으면 업데이트 시간(mtime)을 갱신하고 True를 반환한다,
+        아니면 False를 반환한다.
+        '''
+        written_time = self.find_recent_file_and_get_time(target)
+        return_value = written_time != target.mtime_is
+        target.mtime_is = written_time
+        return return_value
+
+    def get_updated_log(self, target:FileChecker)->list[str]:
+        '''
+        target log에서 갱신된 부분만을 별도로 발췌한다.
+        find_time_in_log 보다 반드시 먼저 호출해야 한다.
+        '''
+        new_log = LogClass(target.name_is)
+        new_log.contents_is = target.read_file()
+        return (new_log - target).contents_is
+
     @property
     def file_data(self)->AiosData:
         '''
@@ -147,7 +215,7 @@ class ModelSimulator:
         이후 갱신된 정보를 반환한다.
         '''
         value = self.aios_data_is
-        value.cfx_status = FileChecker(**info_cfx_status).contents
+        value.cfx_status = FileChecker(**info_cfx_status).read_file()
         value.elevator_enable = FileChecker(**info_elevator_enable).is_exist
         value.plate_exist = FileChecker(**info_plate_exist).is_exist
         if isinstance(value.cfx_status, list):
@@ -173,6 +241,8 @@ class ModelSimulator:
         obj.method_status[1][2] = obj.elevator_request
         obj.method_status[2][1] = obj.plrn1_name
         obj.method_status[3][1] = obj.plrn2_name
-        FileChecker(**info_method_status).contents = obj.method_status
+        self.aios_data_is = obj
+        FileChecker(**info_method_status).write_file(obj.method_status)
         if obj.message:
-            FileChecker(**info_trc).contents = obj.message
+            FileChecker(**info_trc).write_file(obj.message)
+            obj.message = ""

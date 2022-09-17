@@ -3,16 +3,15 @@ STARlet Simulator의 뷰 역할을 수행하는 모듈이다.
 라벨 프레임 클래스와 버튼 클래스를 갖는다.
 라벨 프레임 클래스는 내부에 메세지 위젯을 통해 내용을 표시하고 갱신한다.
 '''
-from socket import TCP_KEEPCNT
 import tkinter as tk
 import tkinter.font as tkFont
-from tkinter import Tk, filedialog
+from tkinter import filedialog
 from tkinter import messagebox
 
 SIM_VERISON = "v1.0"
 window_frame = tk.Tk()
 
-window_frame.title("STARlet Simualtor")
+window_frame.title("STARlet, AIOS log logger")
 window_frame.geometry("740x575")
 window_frame.config(bg = '#4472C4')
 window_frame.resizable(height=False, width=False)
@@ -283,11 +282,10 @@ class ViewSimulator():
                 self.button_2plate.contents = "normal"
             else:
                 if 'active' in self.button_1plate.contents:
-                    self.__plrn_info['scenario'] = "1plate"
-                    self.__plrn_info['plrn_name'] = file.name
+                    self.plrn_info_is = dict(scenario='1plate', plrn_name=file.name)
                 else:
-                    self.__plrn_info['scenario'] = "2plate"
-                    self.__plrn_info['plrn_name'] = file.name
+                    self.plrn_info_is = dict(scenario='2plate', plrn_name=file.name)
+
 
     def _update_button(self):
         '''
@@ -307,11 +305,11 @@ class ViewSimulator():
             plrn_flag = False
             self._buttons_auto_run('normal') #눌린 상태로 존재하는 것 방지용.
 
-        if 'active' in (self.button_abort1.contents, self.button_abort2.contents,\
-                        self.button_abort3.contents, self.button_run.contents):
-            auto_run_flag = True
-        else:
-            auto_run_flag = False
+        #check below buttons are pressed
+        auto_run_flag = bool('active' in (self.button_abort1.contents,
+                                          self.button_abort2.contents,
+                                          self.button_abort3.contents,
+                                          self.button_run.contents))
 
         if plrn_flag:
             if not auto_run_flag:
@@ -337,6 +335,10 @@ class ViewSimulator():
         plrn 파일 명 및 1plate 또는 2plate 시나리오를 알림
         '''
         return self.__plrn_info
+    @plrn_info_is.setter
+    def plrn_info_is(self,scenario = "", plrn_name = "")->None:
+        self.__plrn_info['scenario'] = scenario
+        self.__plrn_info['plrn_name'] = plrn_name
 
 if __name__ == '__main__':
     view_simulator = ViewSimulator()

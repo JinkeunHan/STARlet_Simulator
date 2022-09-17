@@ -34,6 +34,18 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         내부 동작 타이머의 동작 시간 설정 메서드
         '''
         self.__sec_time = value
+    def _check_module_move_within_times(self, time_sec:int = 30)->bool:
+        '''
+        설정한 시간동안 handler를 관찰, 이 시간 내 plate hanlder가 움직이면 True
+        시간이 초과될 동안 오지 않으면 False 반환
+        '''
+        self._time_is = time_sec
+        while self._time_is:
+            cfx_info = self.aios_data_is
+            window_frame.update()
+            if "88:88:88" in (cfx_info.cfx1_time, cfx_info.cfx2_time):
+                return True
+        return False
 
     def _periodic_func(self):
         '''
@@ -67,20 +79,33 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         return result
 
     def _simulate_abort_starlet(self):
-        method_status = self.aios_data_is
-        method_status.method_run = '2'
-        self.file_data = method_status
-        messagebox.showinfo("알림","STARlet is aborted.")
+        '''
+        AiosData를 읽어온 다음 method_run 값을 조절,
+        AIOS에게 STARlet이 Abort 되었음을 알린다.
+        '''
+        value = self.aios_data_is
+        value.method_run = '2'
+        self.file_data = value
+        messagebox.showinfo("알림","STARlet이 Abort 되었습니다.")
 
     def _simulate_stop_starlet(self):
-        method_status = self.aios_data_is
-        method_status.method_run = '0'
-        method_status.elevator_request = '0'
-        method_status.plrn1_name = ""
-        method_status.plrn2_name = ""
-        self.file_data = method_status
+        '''
+        AIOS에게 STARlet이 정지하였음을 알린다.
+        또한 plrn 정보를 없앤다.
+        '''
+        self.plrn_info_is = {}
+        value = self.aios_data_is
+        value.method_run = '0'
+        value.elevator_request = '0'
+        value.plrn1_name = ""
+        value.plrn2_name = ""
+        self.file_data = value
 
     def _simulate_run_starlet(self):
+        '''
+        AiosData를 읽어온 다음 여기에 plrn 정보를 추가한다.
+        그리고 AIOS에게 STARlet이 동작 중임을 알린다.
+        '''
         method_status = self.aios_data_is
         method_status.method_run = '1'
         method_status.elevator_request = '0'
@@ -93,37 +118,51 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         self.file_data = method_status
 
     def _simulate_elevator_request_1st(self):
+        '''
+        첫 번쨰 플레이트를 전달하기 위해 AIOS에게
+        엘리베이터 모듈을 요청한다.
+        '''
         method_status = self.aios_data_is
         method_status.elevator_request = '1 plrn1'
         self.file_data = method_status
 
     def _simulate_elevator_request_2nd(self):
+        '''
+        두 번쨰 플레이트를 전달하기 위해 AIOS에게
+        엘리베이터 모듈을 요청한다.
+        '''
         method_status = self.aios_data_is
         method_status.elevator_request = '1 plrn2'
         self.file_data = method_status
 
     def _simulate_plate_transfer_1st(self):
+        '''
+        AIOS에게 첫 번째 플레이트를 전달했음을 알린다.
+        '''
         method_status = self.aios_data_is
         method_status.elevator_request = '2 plrn1'
         self.file_data = method_status
 
     def _simulate_plate_transfer_2nd(self):
+        '''
+        AIOS에게 두 번째 플레이트를 전달했음을 알린다.
+        '''
         method_status = self.aios_data_is
         method_status.elevator_request = '2 plrn2'
         self.file_data = method_status
 
     def _simulate_elevator_wait(self)->bool:
+        '''
+        AIOS로부터 엘리베이터 모듈이 올 때까지 30초 대기한다.
+        그 사이에 엘리베이터 모듈이 올라오면 True
+        올라오지 않으면 False를 반환한다.
+        '''
         self._time_is = 30
-        return_value = True
         while self._time_is: #wait for elevator enable during 30 seconds
+            window_frame.update()
             if self.aios_data_is.elevator_enable == 'Existing':
-                self._time_is = 0 #if elevator is ready, break while
-        if self.aios_data_is.elevator_enable == 'Existing':
-            messagebox.showinfo("알림","엘리베이터 모듈에 플레이트를 놓고 OK를 눌러주세요.")
-        else:
-            messagebox.showerror("에러"," 모듈이 정해진 시간(30초) 안에 도착하지 않았습니다.")
-            return_value = False
-        return return_value
+                break
+        return bool(self._time_is)
 
     def _delay_sec(self, seconds):
         self._time_is = seconds
@@ -143,19 +182,21 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
             plrn_info = self.plrn_info_is
             if self._check_cfx_is_available(plrn_info['scenario']):
                 self._simulate_run_starlet()
-                #self._delay_sec(5)
-                window_frame.after(3000) # instead of delay, using after
+                self._delay_sec(5)
                 self._simulate_elevator_request_1st()
                 if not self._simulate_elevator_wait():
+                    messagebox.showerror("에러"," 모듈이 정해진 시간(30초) 안에 도착하지 않았습니다.")
                     return
+                messagebox.showinfo("알림","엘리베이터 모듈에 플레이트를 놓고 OK를 눌러주세요.")
                 self._simulate_plate_transfer_1st()
-                if plrn_info['scenario'] == '2plate':
-                    window_frame.after(15*60*000) # instead of delay, using after
-                    #self._delay_sec(15*60)
-                    self._simulate_elevator_request_2nd()
-                    if not self._simulate_elevator_wait():
-                        return
-                    self._simulate_plate_transfer_2nd()
+                if plrn_info['scenario'] == '1plate':
+                    return
+                self._simulate_elevator_request_2nd()
+                if not self._simulate_elevator_wait():
+                    messagebox.showerror("에러"," 모듈이 정해진 시간(30초) 안에 도착하지 않았습니다.")
+                    return
+                messagebox.showinfo("알림","엘리베이터 모듈에 플레이트를 놓고 OK를 눌러주세요.")
+                self._simulate_plate_transfer_2nd()
             else:
                 messagebox.showinfo("경고","CFX 장비가 동작 중입니다.")
                 self.button_run.contents = 'normal'
@@ -171,21 +212,16 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         elif self.button_abort3.contents == 'active':
             if self._check_cfx_is_available('1plate'):
                 self._simulate_run_starlet()
-                self._delay_sec(5)
+                self._delay_sec(5) #의도적 지연. 사용자로 하여금 상태 변화 인식을 위함
                 self._simulate_elevator_request_1st()
                 self._time_is = 30
-                temp_flag = False
-                while self._time_is:
-                    cfx_info = self.aios_data_is
-                    if "88:88:88" in (cfx_info.cfx1_time, cfx_info.cfx2_time):
-                        temp_flag = True
-                        break
-                if temp_flag:
-                    self._simulate_plate_transfer_1st()
+                if self._simulate_elevator_wait():
+                    self._simulate_abort_starlet()
+                    messagebox.showinfo("알림","Abort3 시나리오 완료.")
                 else:
-                    messagebox.showinfo("경고","Abort3 시나리오를 실패했습니다.")
+                    messagebox.showinfo("주의","Abort3 시나리오 실패.")
             else:
-                messagebox.showinfo("경고","CFX 장비가 모두 동작 중입니다.")
+                messagebox.showinfo("주의","CFX 장비가 모두 동작 중입니다.")
 
     def _command_abort2_button(self)->None:
         '''
@@ -199,16 +235,15 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
             if self._check_cfx_is_available('1plate'):
                 self._simulate_run_starlet()
                 messagebox.showinfo("알림","Abort2 시나리오를 시작합니다.")
-                self._delay_sec(5)
+                self._delay_sec(5) #의도적 지연. 사용자로 하여금 상태 변화 인식을 위함
                 self._simulate_elevator_request_1st()
-                self._delay_sec(30)
-                while (self._time_is)> 0:
-                    cfx_info = self.aios_data_is
-                    if "88:88:88" in (cfx_info.cfx1_time, cfx_info.cfx2_time):
-                        self._simulate_abort_starlet()
+                if self._check_module_move_within_times(30):
+                    self._simulate_abort_starlet()
+                    messagebox.showinfo("알림","Abort2 시나리오 완료.")
+                else:
+                    messagebox.showinfo("주의","Abort2 시나리오 실패.")
             else:
-                messagebox.showinfo("경고","CFX 장비가 모두 동작 중입니다.")
-
+                messagebox.showinfo("주의","CFX 장비가 모두 동작 중입니다.")
     def _command_abort1_button(self)->None:
         '''
         Abort1 버튼 객체에 추가될 메서드. Abort1 시나리오를 수행
@@ -218,8 +253,11 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         if self.button_abort1.contents == 'normal':
             self._simulate_stop_starlet()
         elif self.button_abort1.contents == 'active':
+            self._simulate_run_starlet()
+            messagebox.showinfo("알림","Abort1 시나리오를 시작합니다.")
+            self._delay_sec(3)
             self._simulate_abort_starlet()
-            #messagebox.showinfo("알림","Abort1 시나리오를 시작합니다.")
+            messagebox.showinfo("알림","Abort1 시나리오 완료.")
 
 if __name__ == '__main__':
     simulator = PresenterSimulator()
