@@ -16,9 +16,9 @@ window_frame.geometry("740x575")
 window_frame.config(bg = '#4472C4')
 window_frame.resizable(height=False, width=False)
 
-font_labelframe = tkFont.Font(family="Arial", size=14, weight='bold', underline=1)
+font_labelframe = tkFont.Font(family="Arial", size=14, weight='bold', underline=True)
 font_contents = tkFont.Font(family="Arial", size=12)
-font_title = tkFont.Font(family="Arial", size=18, weight='bold', underline=0)
+font_title = tkFont.Font(family="Arial", size=18, weight='bold', underline=False)
 
 info_button_1plate = {'order':0, 'state':"normal", 'text':"1plate"}
 info_button_2plate = {'order':1, 'state':"normal", 'text':"2plate"}
@@ -336,9 +336,9 @@ class ViewSimulator():
         '''
         return self.__plrn_info
     @plrn_info_is.setter
-    def plrn_info_is(self,scenario = "", plrn_name = "")->None:
-        self.__plrn_info['scenario'] = scenario
-        self.__plrn_info['plrn_name'] = plrn_name
+    def plrn_info_is(self,value:dict)->None:
+        self.__plrn_info['scenario'] = value['scenario']
+        self.__plrn_info['plrn_name'] = value['plrn_name']
 
 if __name__ == '__main__':
     view_simulator = ViewSimulator()

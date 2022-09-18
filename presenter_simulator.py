@@ -5,7 +5,7 @@ import threading
 import time
 from tkinter import messagebox
 from view_simulator import ViewSimulator, window_frame
-from model_simulator import ModelSimulator
+from model_simulator import AiosData, ModelSimulator
 class PresenterSimulator(ModelSimulator, ViewSimulator):
     '''
     STARlet Simuator의 presenter. Simulator의 전체적인 동작을 여기서 총괄한다.
@@ -47,6 +47,30 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
                 return True
         return False
 
+    def _convert_method_info_for_display(self, value:AiosData)->list:
+        temp_method_status = [
+            ['Method run,',''],
+            ['Elevator requeset,',''],
+            ['Plrn1,',''],
+            ['Plrn2,',''],
+            ]
+        temp_method_status[0][1] = value.method_run
+        temp_method_status[1][1] = value.elevator_request
+        temp_method_status[2][1] = value.plrn1_name
+        temp_method_status[3][1] = value.plrn2_name
+        return temp_method_status
+
+    def _convert_cfx_info_for_display(self, value:AiosData)->list:
+        temp_cfx_status = [
+            ['CFX#1',''],
+            ['CFX#2',''],
+            ['Control Status','']
+            ]
+        temp_cfx_status[0][1] = value.cfx1_time
+        temp_cfx_status[1][1] = value.cfx2_time
+        temp_cfx_status[2][1] = value.control_status
+        return temp_cfx_status
+
     def _periodic_func(self):
         '''
         presenter에서 자체 동작하는 쓰레드 함수
@@ -57,11 +81,11 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
             if (temp_time:=self._time_is)>0:
                 self._time_is = temp_time-1
                 print(f"Remain time is {self._time_is}")
-            value = self.file_data
-            self.cfx_status.contents = value.cfx_status
+            value:AiosData = self.file_data
             self.elevator_enable.contents = value.elevator_enable
             self.plate_exist.contents = value.plate_exist
-            self.method_status.contents = value.method_status
+            self.cfx_status.contents = self._convert_cfx_info_for_display(value)
+            self.method_status.contents = self._convert_method_info_for_display(value)
             time.sleep(1)
 
     def _check_cfx_is_available(self, scenario:str)->bool:
@@ -93,7 +117,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         AIOS에게 STARlet이 정지하였음을 알린다.
         또한 plrn 정보를 없앤다.
         '''
-        self.plrn_info_is = {}
+        self.plrn_info_is = {'scenario':'','plrn_name':''}
         value = self.aios_data_is
         value.method_run = '0'
         value.elevator_request = '0'
@@ -183,20 +207,25 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
             if self._check_cfx_is_available(plrn_info['scenario']):
                 self._simulate_run_starlet()
                 self._delay_sec(5)
+                self.button_run.contents = 'disabled'
                 self._simulate_elevator_request_1st()
                 if not self._simulate_elevator_wait():
                     messagebox.showerror("에러"," 모듈이 정해진 시간(30초) 안에 도착하지 않았습니다.")
+                    self.button_run.contents = 'normal'
                     return
                 messagebox.showinfo("알림","엘리베이터 모듈에 플레이트를 놓고 OK를 눌러주세요.")
                 self._simulate_plate_transfer_1st()
                 if plrn_info['scenario'] == '1plate':
+                    self.button_run.contents = 'normal'
                     return
                 self._simulate_elevator_request_2nd()
                 if not self._simulate_elevator_wait():
                     messagebox.showerror("에러"," 모듈이 정해진 시간(30초) 안에 도착하지 않았습니다.")
+                    self.button_run.contents = 'normal'
                     return
                 messagebox.showinfo("알림","엘리베이터 모듈에 플레이트를 놓고 OK를 눌러주세요.")
                 self._simulate_plate_transfer_2nd()
+                self.button_run.contents = 'normal'
             else:
                 messagebox.showinfo("경고","CFX 장비가 동작 중입니다.")
                 self.button_run.contents = 'normal'

@@ -22,25 +22,12 @@ info_trc = {'path':"C:/Program Files (x86)/HAMILTON/LogFiles/",
 info_aios_log = {'path':"D:/Release/Logs/Debug/",
                 'name':"test.txt"}
 
-contents_method_status=[
-        ["Method","run,",""],
-        ["Elevator","requeset,",""],
-        ["Plrn1,",""],
-        ["Plrn2,",""]
-    ]
-contents_cfx_status = [
-        ['CFX#1', "00:00:00"],
-        ['CFX#2', "00:00:00"],
-        ['Control','Status','0']
-    ]
 @dataclass
 class AiosData:
     '''
     simulator에서 공통적으로 사용될 데이터 클래스임
     Presenter가 해당 클래스를 가져와 자신의 객체 내에 보관
     '''
-    cfx_status:list
-    method_status:list
     cfx1_time:str=""
     cfx2_time:str=""
     control_status:str=""
@@ -122,9 +109,12 @@ class FileChecker(LogClass):
         '''
         path, name = self.path_and_name_is
         if ".csv" in name:
-            with open(path+name,'w', encoding='utf-8') as f_csv:
-                for list_value in value:
-                    csv.writer(f_csv, lineterminator='\n', delimiter=' ').writerow(list_value)
+            with open(path+name,'w', encoding='utf-8', newline='') as f_csv:
+                for item in value:
+                    csv.writer(f_csv).writerows([item])
+                    # elif isinstance(item, str):
+                    #     if item is not None:
+                    #         csv.writer(f_csv).writerows([item.split(',')])
         else:
             with open(path+name,'w', encoding='utf-8') as f_trc:
                 for string in (string for list in value for string in list):
@@ -142,10 +132,7 @@ class ModelSimulator:
     - Method_status.csv 및 *.trc가 여기에 해당
     '''
     def __init__(self):
-        self.__aios_data = AiosData(
-            cfx_status= contents_cfx_status,
-            method_status = contents_method_status,
-        )
+        self.aios_data_is = AiosData()
 
     @property
     def aios_data_is(self)->AiosData:
@@ -214,18 +201,18 @@ class ModelSimulator:
         또한 CFX1과 CFX2의 남은 시간과 control status를 갱신한다.
         이후 갱신된 정보를 반환한다.
         '''
-        value = self.aios_data_is
-        value.cfx_status = FileChecker(**info_cfx_status).read_file()
-        value.elevator_enable = FileChecker(**info_elevator_enable).is_exist
-        value.plate_exist = FileChecker(**info_plate_exist).is_exist
-        if isinstance(value.cfx_status, list):
-            value.cfx1_time = value.cfx_status[0][1]
-            value.cfx2_time = value.cfx_status[1][1]
-            value.control_status = value.cfx_status[2][2]
-        else: #return of "None existing"
-            value.cfx1_time = value.cfx_status
-            value.cfx2_time = value.cfx_status
-            value.control_status = value.cfx_status
+        value:AiosData = self.aios_data_is
+        cfx_status:list[str] = FileChecker(**info_cfx_status).read_file()
+        value.elevator_enable:str = FileChecker(**info_elevator_enable).is_exist
+        value.plate_exist:str = FileChecker(**info_plate_exist).is_exist
+        if isinstance(cfx_status, list):
+            value.cfx1_time:str = cfx_status[0].split(',')[1].rstrip('\n')
+            value.cfx2_time:str = cfx_status[1].split(',')[1].rstrip('\n')
+            value.control_status:str = cfx_status[2].split(',')[1].rstrip('\n')
+        else: #return value is "None existing"
+            value.cfx1_time = cfx_status
+            value.cfx2_time = cfx_status
+            value.control_status = cfx_status
         self.aios_data_is = value
         return value
 
@@ -237,12 +224,14 @@ class ModelSimulator:
         - method_status.csv
         - .trc
         '''
-        obj.method_status[0][2] = obj.method_run
-        obj.method_status[1][2] = obj.elevator_request
-        obj.method_status[2][1] = obj.plrn1_name
-        obj.method_status[3][1] = obj.plrn2_name
-        self.aios_data_is = obj
-        FileChecker(**info_method_status).write_file(obj.method_status)
+        temp_method_status:list = []
+        temp_method_status += [(f'Method run,{obj.method_run}'.split(','))]
+        temp_method_status += [(f'Elevator request,{obj.elevator_request}'.split(','))]
+        temp_method_status += [(f'Plrn1, {obj.plrn1_name}'.split(','))]
+        temp_method_status += [(f'Plrn1, {obj.plrn2_name}'.split(','))]
+        temp_method_status += ['']
+        print(temp_method_status)
+        FileChecker(**info_method_status).write_file(temp_method_status)
         if obj.message:
             FileChecker(**info_trc).write_file(obj.message)
             obj.message = ""
