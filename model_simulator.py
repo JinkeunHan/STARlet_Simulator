@@ -116,8 +116,8 @@ class ModelSimulator:
         temp_method_status:list = []
         temp_method_status += [(f'Method run,{obj.method_run}'.split(','))]
         temp_method_status += [(f'Elevator request,{obj.elevator_request}'.split(','))]
-        temp_method_status += [(f'Plrn1, {obj.plrn1_name}'.split(','))]
-        temp_method_status += [(f'Plrn1, {obj.plrn2_name}'.split(','))]
+        temp_method_status += [('Plrn1', f'{obj.plrn1_name}')]
+        temp_method_status += [('Plrn2', f'{obj.plrn2_name}')]
         temp_method_status += ['']
         self.method_status_file.write_file(temp_method_status)
         if obj.message:

@@ -19,6 +19,7 @@ window_frame.resizable(height=False, width=False)
 
 font_labelframe = tkFont.Font(family="Arial", size=14, weight='bold', underline=True)
 font_contents = tkFont.Font(family="Arial", size=12)
+font_method_status_contents = tkFont.Font(family="Arial", size=10)
 font_title = tkFont.Font(family="Arial", size=18, weight='bold', underline=False)
 
 info_button_1plate = {'order':0, 'state':"normal", 'text':"1plate"}
@@ -51,7 +52,7 @@ info_method_status = {
 	'text':"Method_Status.csv",
     'place':{'x':267, 'y':99, 'width':193, 'height':106},
     'message_place':{'x':0, 'y':0, 'width':193},
-    'message_config':{'text':"", 'anchor':'w','justify':'left','font':font_contents},
+    'message_config':{'text':"", 'anchor':'w','justify':'left','font':font_method_status_contents},
 	}
 info_elevator_enable = {
 	'text':"Elevator_enable.csv",

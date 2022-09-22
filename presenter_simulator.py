@@ -49,6 +49,8 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         ModelSimulator.__init__(self)
         ViewSimulator.__init__(self)
         self._time_is = 0
+        self.button_1plate.command_list = self._command_plate_button
+        self.button_2plate.command_list = self._command_plate_button
         self.button_abort1.command_list = self._command_abort1_button
         self.button_abort2.command_list = self._command_abort2_button
         self.button_abort3.command_list = self._command_abort3_button
@@ -94,6 +96,16 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         내부 동작 타이머의 동작 시간 설정 메서드
         '''
         self.__sec_time = value
+
+    def _command_plate_button(self)->None:
+        '''
+        Abort1 버튼 객체에 추가될 메서드. Abort1 시나리오를 수행
+        버튼의 상태가 'normal'이면 STARlet 정지 구현
+        버튼의 상태가 'active'이면 Abort1 시나리오 구현
+        '''
+        if self.button_2plate.state_is == self.button_1plate.state_is =='normal':
+            self.__simulate_stop_starlet()
+
 
     def _command_abort1_button(self)->None:
         '''
@@ -174,13 +186,11 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
             plrn_info = self.plrn_info_is
             if self.__check_cfx_is_available(plrn_info['scenario']):
                 self.button_run.state_is = 'inactive'
-                self.trc_file.write_file(["dummy data to simulate starlet operation. blah, blah, blah~~~~~~~~~~~~~~~~~~~~~~\n"]*20000)
                 if not self.__run_1plate_scenario(): #fail
                     return
                 if plrn_info['scenario'] == '1plate':
                     self.button_run.state_is = 'active'
                 elif plrn_info['scenario'] == '2plate':
-                    self.trc_file.write_file(["dummy data to simulate starlet operation. blah, blah, blah~~~~~~~~~~~~~~~~~~~~~~\n"]*20000)
                     if not self.__run_2plate_scenario(): #fail
                         return
                     self.button_run.state_is = 'active'
@@ -438,7 +448,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         엘리베이터 모듈을 요청한다.
         '''
         method_status:AiosData = self.aios_data_is
-        method_status.elevator_request = '1 plrn1'
+        method_status.elevator_request = '1,plrn1'
         self.file_data = method_status
         print("1번 플레이트 전달을 위한 엘리베이터 호출")
         print(f"change method_staus.csv.{self.__convert_method_info_for_display(method_status)}\n")
@@ -449,7 +459,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         엘리베이터 모듈을 요청한다.
         '''
         method_status = self.aios_data_is
-        method_status.elevator_request = '1 plrn2'
+        method_status.elevator_request = '1,plrn2'
         self.file_data = method_status
         print("2번 플레이트 전달을 위한 엘리베이터 호출")
         print(f"change method_staus.csv.{self.__convert_method_info_for_display(method_status)}\n")
@@ -459,7 +469,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         AIOS에게 첫 번째 플레이트를 전달했음을 알린다.
         '''
         method_status = self.aios_data_is
-        method_status.elevator_request = '2 plrn1'
+        method_status.elevator_request = '2,plrn1'
         self.file_data = method_status
         print("1번 플레이트 전달\n")
         print(f"change method_staus.csv.{self.__convert_method_info_for_display(method_status)}\n")
@@ -472,7 +482,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         AIOS에게 두 번째 플레이트를 전달했음을 알린다.
         '''
         method_status = self.aios_data_is
-        method_status.elevator_request = '2 plrn2'
+        method_status.elevator_request = '2,plrn2'
         self.file_data = method_status
         print("2번 플레이트 전달\n")
         print(f"change method_staus.csv.{self.__convert_method_info_for_display(method_status)}\n")
