@@ -4,6 +4,8 @@ STARlet Simulatior의 프레젠터 역할을 수행하는 모듈이다.
 각 뷰 객체에게는
 '''
 import unittest
+import os
+import shutil
 from view_simulator import *
 from model_simulator import *
 from presenter_simulator import *
@@ -21,19 +23,8 @@ def info_reset_for_presenter_test():
         import shutil
         shutil.rmtree("/test_simulator")
     os.mkdir(test_dir)
-    info_cfx_status['path'] = test_dir
-    info_cfx_status['name'] ="CFX_status.csv"
-    info_elevator_enable['path'] = test_dir
-    info_elevator_enable['name'] = "elevator_enable.csv"
-    info_plate_exist['path'] = test_dir
-    info_plate_exist['name'] = "plate_exist.csv"
-    info_method_status['path'] = test_dir
-    info_method_status['name'] = "Method_status.csv"
-    info_trc['path'] = test_dir
     info_trc['name'] = "test.trc"
     test_aiosdata = AiosData(
-        cfx_status = contents_cfx_status,
-        method_status = contents_method_status,
         cfx1_time = "00:00:00",
         cfx2_time = "01:23:45",
         control_status = '3',
@@ -45,11 +36,132 @@ def info_reset_for_presenter_test():
         plate_exist = "",
         message = "test message",
     )    
-    FileChecker(**info_plate_exist).write_file(test_aiosdata.plate_exist)
-    FileChecker(**info_elevator_enable).write_file(test_aiosdata.elevator_enable)
-    FileChecker(**info_cfx_status).write_file(test_aiosdata.cfx_status)
+
+class TestPresenterSimulator(unittest.TestCase):
+    def setUp(self)->None:
+        self.presenter_simulator = PresenterSimulator()
+        pass
+    def tearDown(self) -> None:
+        pass
+    # def test_check_modul_move_within_times(self):
+    #     value:AiosData = self.presenter_simulator.aios_data_is
+    #     value.cfx1_time = "00:00:00"
+    #     value.cfx2_time = "00:00:00"
+    #     self.presenter_simulator.aios_data_is = value
+    #     result = self.presenter_simulator._check_module_move_within_times(1)
+    #     self.assertFalse(result)
+    #     value.cfx1_time = "88:88:88"
+    #     value.cfx2_time = "00:00:00"
+    #     self.presenter_simulator.aios_data_is = value
+    #     result = self.presenter_simulator._check_module_move_within_times(1)
+    #     self.assertTrue(result)
+    #     value.cfx1_time = "00:00:00"
+    #     value.cfx2_time = "88:88:88"
+    #     self.presenter_simulator.aios_data_is = value
+    #     result = self.presenter_simulator._check_module_move_within_times(1)
+    #     self.assertTrue(result)
+    #     value.cfx1_time = "88:88:88"
+    #     value.cfx2_time = "88:88:88"
+    #     self.presenter_simulator.aios_data_is = value
+    #     result = self.presenter_simulator._check_module_move_within_times(1)
+    #     self.assertTrue(result)
+    def test_check_cfx_is_available(self):
+        value:AiosData = self.presenter_simulator.aios_data_is
+        value.cfx1_time = "00:00:00"
+        value.cfx2_time = "00:00:00"
+        self.presenter_simulator.aios_data_is = value
+        result = self.presenter_simulator._check_cfx_is_available('2plate')
+        self.assertTrue(result)
+        result = self.presenter_simulator._check_cfx_is_available('1plate')
+        self.assertTrue(result)
+
+        value.cfx1_time = "88:88:88"
+        value.cfx2_time = "00:00:00"
+        self.presenter_simulator.aios_data_is = value
+        result = self.presenter_simulator._check_cfx_is_available('2plate')
+        self.assertFalse(result)
+        result = self.presenter_simulator._check_cfx_is_available('1plate')
+        self.assertTrue(result)
+
+        value.cfx1_time = "00:00:00"
+        value.cfx2_time = "88:88:88"
+        self.presenter_simulator.aios_data_is = value
+        result = self.presenter_simulator._check_cfx_is_available('2plate')
+        self.assertFalse(result)
+        result = self.presenter_simulator._check_cfx_is_available('1plate')
+        self.assertTrue(result)
+
+        value.cfx1_time = "88:88:88"
+        value.cfx2_time = "88:88:88"
+        self.presenter_simulator.aios_data_is = value
+        result = self.presenter_simulator._check_cfx_is_available('2plate')
+        self.assertFalse(result)
+        result = self.presenter_simulator._check_cfx_is_available('1plate')
+        self.assertFalse(result)
+
+    def test_simulate_abort_starlet(self):
+        '''
+        메서드를 이루는 내부 메서드들 모두가
+        model_simulator의 unittest를 통해 이미 검증됨
+        '''
+        pass
+
+    def test_simulate_stop_starlet(self):
+        '''
+        메서드를 이루는 내부 메서드들 모두가
+        model_simulator의 unittest를 통해 이미 검증됨
+        '''
+        pass
+
+    def test_simulate_run_starlet(self):
+        '''
+        메서드를 이루는 내부 메서드들 모두가
+        model_simulator의 unittest를 통해 이미 검증됨
+        '''
+        pass
+
+    def test_simulate_elevator_request_1st(self):
+        '''
+        메서드를 이루는 내부 메서드들 모두가
+        model_simulator의 unittest를 통해 이미 검증됨
+        '''
+        pass
+
+    def test_simulate_elevator_request_2nd(self):
+        '''
+        메서드를 이루는 내부 메서드들 모두가
+        model_simulator의 unittest를 통해 이미 검증됨
+        '''
+        pass
+
+    def test_simulate_plate_transfer_1st(self):
+        '''
+        메서드를 이루는 내부 메서드들 모두가
+        model_simulator의 unittest를 통해 이미 검증됨
+        '''
+        pass
+
+    def test_simulate_plate_transfer_2nd(self)->None:
+        '''
+        메서드를 이루는 내부 메서드들 모두가
+        model_simulator의 unittest를 통해 이미 검증됨
+        '''
+        pass
+
+    def test_simulate_elevator_wait(self)->bool:
+        '''
+        메서드를 이루는 내부 메서드들 모두가
+        model_simulator의 unittest를 통해 이미 검증됨
+        self.presenter_simulator._simulate_elevator_wait(10)
+        window_frame.destroy()
+        '''
+
+    def test_delay_sec(self):
+        '''
+        메서드를 이루는 내부 메서드들 모두가
+        model_simulator의 unittest를 통해 이미 검증됨
+        '''
+        pass
 
 if __name__ == '__main__':
-    info_reset_for_presenter_test()
-    #asyncio.run(PresenterSimulator()._command_abort2_button)
-    simulator = PresenterSimulator()
+    unittest.main()

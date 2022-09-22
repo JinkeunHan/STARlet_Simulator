@@ -106,6 +106,9 @@ class LogClass:
     def __len__(self):
         return len(self.contents_is)
 
+    def __del__(self):
+        self.contents_is = []
+
     def __add__(self, other):
         if self != other:
             raise LogCompareException()
@@ -115,7 +118,7 @@ class LogClass:
 
     def __sub__(self, other):
         if self != other:
-            raise LogCompareException()
+            other.contents_is = []
         temp_log = LogClass(self.name_is)
         diff_length= len(self.contents_is) - len(other.contents_is)
         if diff_length>0:#new one
@@ -141,5 +144,5 @@ if __name__ == '__main__':
 
     log1 = LogClass("test log1")
     log1.contents_is = test_list3
-    
+
     print(log1.find('sentence'))
