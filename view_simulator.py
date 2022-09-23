@@ -19,7 +19,7 @@ window_frame.resizable(height=False, width=False)
 
 font_labelframe = tkFont.Font(family="Arial", size=14, weight='bold', underline=True)
 font_contents = tkFont.Font(family="Arial", size=12)
-font_method_status_contents = tkFont.Font(family="Arial", size=10)
+font_contents2 = tkFont.Font(family="Arial", size=10)
 font_title = tkFont.Font(family="Arial", size=18, weight='bold', underline=False)
 
 info_button_1plate = {'order':0, 'state':"normal", 'text':"1plate"}
@@ -52,7 +52,7 @@ info_method_status = {
 	'text':"Method_Status.csv",
     'place':{'x':267, 'y':99, 'width':193, 'height':106},
     'message_place':{'x':0, 'y':0, 'width':193},
-    'message_config':{'text':"", 'anchor':'w','justify':'left','font':font_method_status_contents},
+    'message_config':{'text':"", 'anchor':'w','justify':'left','font':font_contents2},
 	}
 info_elevator_enable = {
 	'text':"Elevator_enable.csv",
@@ -69,8 +69,8 @@ info_plate_exist = {
 info_control_log = {
 	'text':"Control_Log",
     'place':{'x':307, 'y':223, 'width':405, 'height':316},
-    'message_place':{'x':0, 'y':0, 'width':405},
-    'message_config':{'text':"", 'anchor':'w','justify':'left','font':font_contents},
+    'text_place':{'x':0, 'y':0, 'width':388, 'height':279},#라벨 프레임의 폭에서 스크롤 바의 폭 (17, 37) 제외
+    'text_config':{'font':font_contents2},
 	}
 info_auto_run = {
 	'text':"Auto_Run",
@@ -169,6 +169,22 @@ class LabelFrame:
                                             -info['message_place'].get('x'),
                                       **info['message_config'], bg='#FFFFFF')
             self.message.place(**info['message_place'])
+        if 'text_place' in info:
+            #순서가 중요함. scrollbar 부터 먼저 선언하고 그 다음에 텍스트 선언
+            yscrollbar = tk.Scrollbar(self.label_frame)
+            yscrollbar.pack(side='right', fill='y')
+            xscrollbar = tk.Scrollbar(self.label_frame, orient='horizontal')
+            xscrollbar.pack(side='bottom', fill='x')
+            self.text = tk.Text(self.label_frame,
+                                **info['text_config'], bg='#FFFFFF',
+                                state='disabled',
+                                wrap='none',
+                                yscrollcommand=yscrollbar.set,
+                                xscrollcommand=xscrollbar.set,
+                                )
+            self.text.place(**info['text_place'])
+            yscrollbar.config(command= self.text.yview)
+            xscrollbar.config(command= self.text.xview)
     @property
     def message_is(self):
         '''
@@ -182,13 +198,24 @@ class LabelFrame:
         CFX_Status.csv, Method_status.csv, Elevator_enable.csv,
         Plate_exist.csv 및 Control_Log에 내용을 써넣기 위해 존재한다.
         '''
-        if isinstance(printing_info, list):
-            message_list=[" ".join(sentence) for sentence in printing_info]
-            message = '\n'.join(message_list)
-        elif isinstance(printing_info, str):
-            message = printing_info
-        self.message.configure(text=message)
-
+        if hasattr(self, 'message'):
+            if isinstance(printing_info, list):
+                message_list=[" ".join(sentence) for sentence in printing_info]
+                message = '\n'.join(message_list)
+            elif isinstance(printing_info, str):
+                message = printing_info
+            self.message.configure(text=message)
+        if hasattr(self, 'text'):
+            self.text.configure(state = 'normal')
+            if isinstance(printing_info, list):
+                for sentence in printing_info:
+                    if sentence[-1] == '\n':
+                        self.text.insert("end", sentence)
+                    else:
+                        self.text.insert("end", sentence+'\n')
+            elif isinstance(printing_info, str):
+                self.text.insert("end", printing_info)
+            self.text.config(state='disabled')
 class ViewSimulator():
     '''
     STARlet Simuator의 뷰 객체들의 응집체
