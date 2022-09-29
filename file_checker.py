@@ -74,7 +74,8 @@ class FileChecker(LogClass):
 
     def read_file(self)->list :
         '''
-        지정된 경로 ("D:/AIOS_STARLET_Logger/") 내 지정된 이름의 파일을 찾고, 파일 확장자에 맞춰 그 내용을 읽는다.
+        지정된 경로 내 지정된 이름의 파일을 찾고, 
+        파일 확장자에 맞춰 그 내용을 읽는다.
         이후 그 내용을 리스트로 반환한다.
         만약 읽고자 하는 파일이 경로에 없다면 []을 반환한다.
         '''
@@ -91,32 +92,19 @@ class FileChecker(LogClass):
             else:
                 with open(path+name,'r', encoding='utf-8') as f_txt:
                     lines = f_txt.readlines()
-
         return lines
 
-    def read_file_safely(self)->list :
+    def read_file_safe(self)->list :
         '''
         지정된 경로 ("D:/AIOS_STARLET_Logger/") 내 지정된 이름의 파일을 찾고, 파일 확장자에 맞춰 그 내용을 읽는다.
         이후 그 내용을 리스트로 반환한다.
         만약 읽고자 하는 파일이 경로에 없다면 []을 반환한다.
         '''
         self.copy_file()
-        path = "D:/AIOS_STARLET_Logger/"
-        lines = []
         b_path, name = self.path_and_name_is
+        path = "D:/AIOS_STARLET_Logger/"
         self.path_and_name_is = path, name
-
-        if self.is_exist == "Existing":
-            if ".csv" in name:
-                with open(path+name,'r', encoding='utf-8') as f_csv:
-                    lines = f_csv.readlines()
-            elif ".trc" in name:
-                with open(path+name,'r', encoding='utf-8', errors='ignore') as f_txt:
-                    lines = f_txt.readlines()
-            else:
-                with open(path+name,'r', encoding='utf-8') as f_txt:
-                    lines = f_txt.readlines()
-
+        lines = self.read_file()
         self.path_and_name_is = b_path, name
         self.del_file()
         return lines
@@ -165,7 +153,6 @@ class FileChecker(LogClass):
         만약 찾지 못하면 null을 반환한다.
         '''
         path, target_file = self.path_and_name_is
-
         file_type = target_file.split('.')[-1]
         file_list:list = os.listdir(path)
         same_typed_files = [
@@ -184,7 +171,7 @@ class FileChecker(LogClass):
         '''
         file의 수정 시간을 얻는다.
         time stamp로 반환한다.
-        만약 'str'을 인수로 전달하면 strftime "Y-M-D H:m:s"로 반환한다.
+        만약 'str'을 인수로 전달하면 strftime "Y-m-d H:M:S"로 반환한다.
         '''
         path, name = self.path_and_name_is
         mtime:Any = os.path.getmtime(path + name)

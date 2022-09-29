@@ -1,47 +1,34 @@
 '''
 STARlet Simulatior의 프레젠터 역할을 수행하는 모듈이다.
+View와 Model의 메서드를 조합하여 상위 메서드를 구현, 목표로 하는 기능을 구현한다.
 '''
 import threading
 import time
 from tkinter import Tk, messagebox
+from xmlrpc.client import boolean
 from view_simulator import ViewSimulator, window_frame
-from model_simulator import AiosData, ModelSimulator
+from model_simulator import AiosData, ModelSimulator, trc_file_contents
 
 info_message:dict = {
-    'info_0':{'m_type':'info', 'message':'STARlet이 Abort 되었습니다.', 'time_out':3000},
-    'info_1':{'m_type':'info', 'message':'엘리베이터 모듈에 플레이트를 놓고 OK를 눌러주세요.', 'time_out':3000},
-    'info_2':{'m_type':'info', 'message':'Abort1 시나리오를 시작합니다.', 'time_out':3000},
-    'info_3':{'m_type':'info', 'message':'Abort1 시나리오 완료.', 'time_out':3000},
-    'info_4':{'m_type':'info', 'message':'Abort1 시나리오 실패', 'time_out':3000},
-    'info_5':{'m_type':'info', 'message':'Abort2 시나리오를 시작합니다.', 'time_out':3000},
-    'info_6':{'m_type':'info', 'message':'Abort2 시나리오 완료', 'time_out':3000},
-    'info_7':{'m_type':'info', 'message':'Abort2 시나리오 실패', 'time_out':3000},
-    'info_8':{'m_type':'info', 'message':'Abort3 시나리오를 시작합니다.', 'time_out':3000},
-    'info_9':{'m_type':'info', 'message':'Abort3 시나리오 완료', 'time_out':3000},
-    'info_10':{'m_type':'info', 'message':'Abort3 시나리오 실패', 'time_out':3000},
+    'info_0':{'m_type':'info', 'message':'STARlet이 Abort 되었습니다.', 'time_sec':3},
+    'info_1':{'m_type':'info', 'message':'엘리베이터 모듈에 플레이트를 놓고 OK를 눌러주세요.', 'time_sec':30},
+    'info_2':{'m_type':'info', 'message':'Abort1 시나리오를 시작합니다.', 'time_sec':3},
+    'info_3':{'m_type':'info', 'message':'Abort1 시나리오 완료.', 'time_sec':3},
+    'info_4':{'m_type':'info', 'message':'Abort1 시나리오 실패', 'time_sec':3},
+    'info_5':{'m_type':'info', 'message':'Abort2 시나리오를 시작합니다.', 'time_sec':3},
+    'info_6':{'m_type':'info', 'message':'Abort2 시나리오 완료', 'time_sec':3},
+    'info_7':{'m_type':'info', 'message':'Abort2 시나리오 실패', 'time_sec':3},
+    'info_8':{'m_type':'info', 'message':'Abort3 시나리오를 시작합니다.', 'time_sec':3},
+    'info_9':{'m_type':'info', 'message':'Abort3 시나리오 완료', 'time_sec':3},
+    'info_10':{'m_type':'info', 'message':'Abort3 시나리오 실패', 'time_sec':3},
 }
-
 warning_message:dict = {
-    'warn_0':{'m_type':'warning', 'message':"CFX 장비가 동작 중입니다.", 'time_out':3000},
+    'warn_0':{'m_type':'warning', 'message':"CFX 장비가 동작 중입니다.", 'time_sec':3},
 }
-
 error_message:dict = {
-    'err_0':{'m_type':'error', 'message':'모듈이 정해진 시간(30초) 안에 도착하지 않았습니다.', 'time_out':3000},
-    'err_1':{'m_type':'error', 'message':'엘리베이터 모듈의 움직임이 감지되지 않았습니다.', 'time_out':3000},
+    'err_0':{'m_type':'error', 'message':'모듈이 정해진 시간(30초) 안에 도착하지 않았습니다.', 'time_sec':3},
+    'err_1':{'m_type':'error', 'message':'엘리베이터 모듈의 움직임이 감지되지 않았습니다.', 'time_sec':3},
 }
-
-trc_file_contents = {
-    'Reset1':"SYSTEM : User Output Dialog - complete;\n",
-    'Reset2':"progress; Error manually recovered by user.\n",
-    'Error1':"SYSTEM : User Output Dialog - start;\n",
-    'Error2':"progress; Error handling waiting for manual recovery\n",
-    'Error3':"SYSTEM : Abort method - start;\n",
-    'Error4':"SYSTEM : Method has been aborted by the system - complete;\n",
-    'Error5':"SYSTEM : Method has been aborted by the method - complete;\n",
-    'Error6':"SYSTEM : Method has been aborted by the user - complete;\n",
-}
-
-
 class PresenterSimulator(ModelSimulator, ViewSimulator):
     '''
     STARlet Simuator의 presenter. Simulator의 전체적인 동작을 여기서 총괄한다.
@@ -65,6 +52,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         self.button_reset1.command_list = self._command_reset1_button
         self.button_reset2.command_list = self._command_reset2_button
 
+    def _start(self):
         simulator_thread = threading.Thread(target=self._periodic_func)
         simulator_thread.start()
         window_frame.mainloop()
@@ -77,7 +65,8 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         '''
         while True:
             if (temp_time:=self._time_is)>0:
-                print(f"Remain time is {self._time_is}")
+                now = time.ctime(time.time())
+                print(now + f", Remain time is {self._time_is}")
                 self._time_is = temp_time-1
             value:AiosData = self.file_data
             self.elevator_enable.message_is = value.elevator_enable
@@ -100,19 +89,18 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
 
     def _command_plate_button(self)->None:
         '''
-        Abort1 버튼 객체에 추가될 메서드. Abort1 시나리오를 수행
-        버튼의 상태가 'normal'이면 STARlet 정지 구현
-        버튼의 상태가 'active'이면 Abort1 시나리오 구현
+        1plate 및 2plate 버튼에 command_list 메서드를 통해 추가될 메서드
+        두 버튼의 상태가 모두 보통 상태면 STARlet의 정지 상태를 모사한다.
         '''
         if self.button_2plate.state_is == self.button_1plate.state_is =='normal':
             self.__simulate_stop_starlet()
-
 
     def _command_abort1_button(self)->None:
         '''
         Abort1 버튼 객체에 추가될 메서드. Abort1 시나리오를 수행
         버튼의 상태가 'normal'이면 STARlet 정지 구현
         버튼의 상태가 'active'이면 Abort1 시나리오 구현
+        Abort1 시나리오: STARlet 동작 중 STARlet Abort 발생
         '''
         if self.button_abort1.state_is == 'normal':
             self.__simulate_stop_starlet()
@@ -120,7 +108,8 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
             self.button_abort1.state_is = 'inactive'
             self.__simulate_run_starlet()
             self.__show_messagebox(**info_message['info_2'])
-            self._delay_sec(3) #의도적 지연. 사용자의 상태 변화 인식을 위함
+            for _ in self.__delay_sec(5):
+                pass#의도적 지연. 사용자의 상태 변화 인식을 위함
             self.__simulate_abort_starlet()
             self.__show_messagebox(**info_message['info_3'])
             self.button_abort1.state_is = 'active'
@@ -130,6 +119,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         Abort2 버튼 객체에 추가될 메서드. Abort2 시나리오를 수행
         버튼의 상태가 'normal'이면 STARlet 정지 구현
         버튼의 상태가 'active'이면 Abort2 시나리오 구현
+        Abort2 시나리오: STARlet에게서 플레이트 수령 실패
         '''
         if self.button_abort2.state_is == 'normal':
             self.__simulate_stop_starlet()
@@ -138,7 +128,8 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
                 self.button_abort2.state_is = 'inactive'
                 self.__show_messagebox(**info_message['info_5'])
                 self.__simulate_run_starlet()
-                self._delay_sec(5) #의도적 지연. 사용자의 상태 변화 인식을 위함
+                for _ in self.__delay_sec(5):
+                    pass#의도적 지연. 사용자의 상태 변화 인식을 위함
                 self.__simulate_elevator_request_1st()
                 if self.__waiting_for_elevator_enable_file_creation():
                     self.__simulate_plate_transfer_1st()
@@ -155,6 +146,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         Abort3 버튼 객체에 추가될 메서드. Abort3 시나리오를 수행
         버튼의 상태가 'normal'이면 STARlet 정지 구현
         버튼의 상태가 'active'이면 Abort3 시나리오 구현
+        Abort3 시나리오: STARlet 모듈 호출 시 정해진 시간 이내에 도달 실패
         '''
         if self.button_abort3.state_is == 'normal':
             self.__simulate_stop_starlet()
@@ -163,7 +155,8 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
                 self.button_abort3.state_is = 'inactive'
                 self.__simulate_run_starlet()
                 self.__show_messagebox(**info_message['info_8'])
-                self._delay_sec(5) #의도적 지연. 사용자의 상태 변화 인식을 위함
+                for _ in self.__delay_sec(5):
+                    pass#의도적 지연. 사용자의 상태 변화 인식을 위함
                 self.__simulate_elevator_request_1st()
                 if self.__check_module_move_within_times(30):
                     self.__simulate_abort_starlet()
@@ -188,16 +181,67 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
             plrn_info = self.plrn_info_is
             if self.__check_cfx_is_available(plrn_info['scenario']):
                 self.button_run.state_is = 'inactive'
-                if not self.__run_1plate_scenario(): #fail
-                    return
-                if plrn_info['scenario'] == '1plate':
-                    self.button_run.state_is = 'active'
+                if not self._run_1st_plate() or plrn_info['scenario'] == '1plate':
+                    pass # 1st plate transfer failure or 1plate scenario complete
                 elif plrn_info['scenario'] == '2plate':
-                    if not self.__run_2plate_scenario(): #fail
-                        return
-                    self.button_run.state_is = 'active'
+                    self._run_2nd_plate()
+                self.button_run.state_is = 'active'
             else:
                 self.__show_messagebox(**warning_message['warn_0'])
+
+    def _run_1st_plate(self)->bool:
+        '''
+        1plate 또는 2plate 시나리오에서 첫 번째 플레이트를 전달할 때 사용하는 메서드
+        1) elevator 모듈을 요청한다.
+        2) 시간 내에 엘리베이터 모듈이 도착하면 플레이트를 놓으라고 한다.
+        3) 사용자가 놓으면 plate를 전달했음을 알린다.
+        '''
+        sentence = ("Start auto run scenario with 1st plate\n")
+        self.control_log.message_is = sentence
+        self.__simulate_run_starlet()
+        for _ in self.__delay_sec(5):
+            pass#의도적 지연. 사용자의 상태 변화 인식을 위함
+        self.__simulate_elevator_request_1st()
+        if not self.__waiting_for_elevator_enable_file_creation(): #비동기 동작 메서드
+            sentence = ("Transfer failure. Elevator module didn't arrive\n")
+            self.control_log.message_is = sentence
+            self.__show_messagebox(**error_message['err_0'])
+            self.button_run.state_is = 'active'
+            return False
+        sentence = ("Elevator module arrived. Try to transfer 1st plate\n")
+        self.control_log.message_is = sentence
+        self.__show_messagebox(**info_message['info_1'])
+        self.__simulate_plate_transfer_1st()
+        return True
+
+    def _run_2nd_plate(self)->bool:
+        '''
+        2plate 시나리오에서 두 번째 플레이트를 전달할 때 사용하는 메서드
+        1) 첫 번째 플레이트가 CFX1에 도달, CFX1이 동작할 때까지 대기한다.
+        2) elevator 모듈을 요청한다.
+        3) 시간 내에 엘리베이터 모듈이 도착하면 플레이트를 놓으라고 한다.
+        4) 사용자가 놓으면 plate를 전달했음을 알린다.
+        '''
+        sentence = ("Start auto run scenario with 2nd plate\n")
+        self.control_log.message_is = sentence
+        self.__simulate_run_starlet()
+        if self.__waiting_for_cfx_remain_time_change():
+            self.__simulate_elevator_request_2nd()
+            if not self.__waiting_for_elevator_enable_file_creation(): #비동기 동작 메서드
+                sentence = ("Transfer failure. Elevator module didn't arrive\n")
+                self.control_log.message_is = sentence
+                self.__show_messagebox(**error_message['err_0'])
+                self.button_run.state_is = 'active'
+                return False
+            sentence = ("Elevator module arrived. Try to transfer 2nd plate\n")
+            self.control_log.message_is = sentence
+            self.__show_messagebox(**info_message['info_1'])
+            self.__simulate_plate_transfer_2nd()
+            return True
+        sentence = ('''Failure to auto run scenario with 2nd plate\n.
+                     Failed to check cfx1's operation in 15 min\n''')
+        self.control_log.message_is = sentence
+        return False
 
     def _command_error1_button(self)->None:
         '''
@@ -206,8 +250,11 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         2) Starlet의 abort 상태를 모방한다.
         '''
         self.__simulate_run_starlet()
-        self._delay_sec(1)
-        self.trc_file.write_file([trc_file_contents['Error1']])
+        for _ in self.__delay_sec(1):
+            pass#의도적 지연. 사용자의 상태 변화 인식을 위함
+        value:AiosData
+        value.message = trc_file_contents['Error1']
+        self.file_data = value
         sentence = f"Error1 button is clicked. Write {trc_file_contents['Error1']}"
         self.control_log.message_is = sentence
         self.__simulate_abort_starlet()
@@ -219,8 +266,11 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         2) Starlet의 abort 상태를 모방한다.
         '''
         self.__simulate_run_starlet()
-        self._delay_sec(1)
-        self.trc_file.write_file([trc_file_contents['Error2']])
+        for _ in self.__delay_sec(1):
+            pass#의도적 지연. 사용자의 상태 변화 인식을 위함
+        value:AiosData
+        value.message = trc_file_contents['Error2']
+        self.file_data = value
         sentence = (f"Error2 button is clicked. Write {trc_file_contents['Error2']}")
         self.control_log.message_is = sentence
         self.__simulate_abort_starlet()
@@ -232,8 +282,11 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         2) Starlet의 abort 상태를 모방한다.
         '''
         self.__simulate_run_starlet()
-        self._delay_sec(1)
-        self.trc_file.write_file([trc_file_contents['Error3']])
+        while self.__delay_sec(1):
+            pass#의도적 지연. 사용자의 상태 변화 인식을 위함
+        value:AiosData
+        value.message = trc_file_contents['Error3']
+        self.file_data = value
         sentence = (f"Error3 button is clicked. Write {trc_file_contents['Error3']}")
         self.control_log.message_is = sentence
         self.__simulate_abort_starlet()
@@ -245,7 +298,11 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         2) Starlet의 abort 상태를 모방한다.
         '''
         self.__simulate_run_starlet()
-        self._delay_sec(1)
+        while self.__delay_sec(1):
+            pass#의도적 지연. 사용자의 상태 변화 인식을 위함
+        value:AiosData
+        value.message = trc_file_contents['Error4']
+        self.file_data = value
         self.trc_file.write_file([trc_file_contents['Error4']])
         sentence = (f"Error4 button is clicked. Write {trc_file_contents['Error4']}")
         self.control_log.message_is = sentence
@@ -258,8 +315,11 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         2) Starlet의 abort 상태를 모방한다.
         '''
         self.__simulate_run_starlet()
-        self._delay_sec(1)
-        self.trc_file.write_file([trc_file_contents['Error5']])
+        while self.__delay_sec(1):
+            pass#의도적 지연. 사용자의 상태 변화 인식을 위함
+        value:AiosData
+        value.message = trc_file_contents['Error5']
+        self.file_data = value
         sentence = (f"Error5 button is clicked. Write {trc_file_contents['Error5']}")
         self.control_log.message_is = sentence
         self.__simulate_abort_starlet()
@@ -271,8 +331,11 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         2) Starlet의 abort 상태를 모방한다.
         '''
         self.__simulate_run_starlet()
-        self._delay_sec(1)
-        self.trc_file.write_file([trc_file_contents['Error6']])
+        while self.__delay_sec(1):
+            pass#의도적 지연. 사용자의 상태 변화 인식을 위함
+        value:AiosData
+        value.message = trc_file_contents['Error6']
+        self.file_data = value
         sentence = (f"Error6 button is clicked. Write {trc_file_contents['Error6']}")
         self.control_log.message_is = sentence
         self.__simulate_abort_starlet()
@@ -283,7 +346,9 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         1) 정해진 문장을 trc 파일에 쓴다.
         2) Starlet의 abort 상태를 모방한다.
         '''
-        self.trc_file.write_file([trc_file_contents['Reset1']])
+        value:AiosData
+        value.message = trc_file_contents['Reset1']
+        self.file_data = value
         sentence = (f"Reset1 button is clicked. Write {trc_file_contents['Reset1']}")
         self.control_log.message_is = sentence
         self.__simulate_run_starlet()
@@ -294,12 +359,19 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         1) 정해진 문장을 trc 파일에 쓴다.
         2) Starlet의 abort 상태를 모방한다.
         '''
-        self.trc_file.write_file([trc_file_contents['Reset2']])
+        value:AiosData
+        value.message = trc_file_contents['Reset2']
+        self.file_data = value
         sentence = (f"Reset1 button is clicked. Write {trc_file_contents['Reset2']}")
         self.control_log.message_is = sentence
         self.__simulate_run_starlet()
 
-    def __show_messagebox(self, m_type:str, message:str, time_out:int, time_sec = None):
+    def __show_messagebox(self, m_type:str, message:str, time_sec:int = 3)->None:
+        '''
+        Abort1, Abort2, Abort3 및 Run 버튼을 눌러 각 시나리오를 테스트할 시
+        관련 정보를 사용자에게 제공하기 위한 메시지 박스
+        정해진 시간이 지나면 자동으로 사라진다.
+        '''
         root = Tk()
         root.withdraw()
         if time_sec:
@@ -318,47 +390,24 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         '''
         설정한 시간동안 handler를 관찰, 이 시간 내 plate hanlder가 움직이면 True
         시간이 초과될 동안 오지 않으면 False 반환
+        CFX_status.csv 내 시간 값이 88:88:88이면 움직이는 것으로 간주.
         '''
-        self._time_is = time_sec
         sentence = ("Waiting for elevator module's movement.\n")
         self.control_log.message_is = sentence
-        while self._time_is:
+        for _ in self.__delay_sec(time_sec):
             cfx_info = self.aios_data_is
-            window_frame.update()
             if "88:88:88" in (cfx_info.cfx1_time, cfx_info.cfx2_time):
-                print("elevator is moving now\n")
+                sentence = ("elevator is moving now\n")
+                self.control_log.message_is = sentence
                 return True
-        print("elevator module didn't arrive in 30 seconds\n")
+        sentence = ("elevator module didn't arrive in 30 seconds\n")
+        self.control_log.message_is = sentence
         return False
-
-    def __convert_method_info_for_display(self, value:AiosData)->list:
-        temp_method_status = [
-            ['Method run,', ''],
-            ['Elevator requeset,', ''],
-            ['Plrn1,', ''],
-            ['Plrn2,', ''],
-            ]
-        temp_method_status[0][1] = value.method_run
-        temp_method_status[1][1] = value.elevator_request
-        temp_method_status[2][1] = value.plrn1_name
-        temp_method_status[3][1] = value.plrn2_name
-        return temp_method_status
-
-    def __convert_cfx_info_for_display(self, value:AiosData)->list:
-        temp_cfx_status = [
-            ['CFX#1', ''],
-            ['CFX#2', ''],
-            ['Control Status', '']
-            ]
-        temp_cfx_status[0][1] = value.cfx1_time
-        temp_cfx_status[1][1] = value.cfx2_time
-        temp_cfx_status[2][1] = value.control_status
-        return temp_cfx_status
 
     def __check_cfx_is_available(self, scenario:str)->bool:
         '''
         CFX#1과 #2의 남은 시간과 동작할 시나리오에 맞춰 CFX가 시나리오에
-        맞춰 동작 가능한지 판단하고 이를 판환한다.
+        맞춰 동작 가능한지 판단하고 이를 반환한다.
         '''
         value = self.aios_data_is
         sentence = ("Check CFX remain time\n")
@@ -376,6 +425,38 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
             sentence = ("CFX is not available\n")
             self.control_log.message_is = sentence
         return result
+
+    def __convert_method_info_for_display(self, value:AiosData)->list:
+        '''
+        AiosData를 method_status 라벨 프레임에 표시할 때 사용하는 메서드
+        AiosData를 읽고 적절한 리스트로 변환한다.
+        '''
+        temp_method_status = [
+            ['Method run,', ''],
+            ['Elevator requeset,', ''],
+            ['Plrn1,', ''],
+            ['Plrn2,', ''],
+            ]
+        temp_method_status[0][1] = value.method_run
+        temp_method_status[1][1] = value.elevator_request
+        temp_method_status[2][1] = value.plrn1_name
+        temp_method_status[3][1] = value.plrn2_name
+        return temp_method_status
+
+    def __convert_cfx_info_for_display(self, value:AiosData)->list:
+        '''
+        AiosData를 cfx_status 라벨 프레임에 표시할 때 사용하는 메서드
+        AiosData를 읽고 적절한 리스트로 변환한다.
+        '''
+        temp_cfx_status = [
+            ['CFX#1', ''],
+            ['CFX#2', ''],
+            ['Control Status', '']
+            ]
+        temp_cfx_status[0][1] = value.cfx1_time
+        temp_cfx_status[1][1] = value.cfx2_time
+        temp_cfx_status[2][1] = value.control_status
+        return temp_cfx_status
 
     def __simulate_abort_starlet(self):
         '''
@@ -421,50 +502,9 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         else:
             method_status.plrn2_name = ''
         self.file_data = method_status
-        sentence = (f"Change method_staus.csv.{self.__convert_method_info_for_display(method_status)}\n")
+        sentence = "Change method_staus.csv."\
+                +f"{self.__convert_method_info_for_display(method_status)}\n"
         self.control_log.message_is = sentence
-
-    def __waiting_for_plate_exist_file_creation(self):
-        print("waiting for 'place_exist.csv'\n")
-        while self.aios_data_is.plate_exist == "Non existing":
-            window_frame.update()
-
-    def __waiting_for_elevator_enable_file_creation(self, wtime:int = 30)->bool:
-        '''
-        AIOS로부터 엘리베이터 모듈이 올 때까지 30초 대기한다.
-        그 사이에 엘리베이터 모듈이 올라오면 True
-        올라오지 않으면 False를 반환한다.
-        '''
-        self._time_is = wtime
-        print(f"waiting for elevator module for {self._time_is} seconds\n")
-        while self._time_is and self.aios_data_is.elevator_enable == 'Non existing':
-            window_frame.update()
-        if bool(self._time_is):
-            sentence = ("Elevator module arrived\n")
-            self.control_log.message_is = sentence
-        else:
-            sentence = ("elevator module didn't arrive\n")
-            self.control_log.message_is = sentence
-        return bool(self._time_is)
-
-    def __waiting_for_cfx_remain_time_change(self, wtime:int = 9000)->bool:
-        '''
-        CFX가 동작 상태가 되기까지 기다린다.
-        '''
-        self._time_is = wtime
-        sentence = (f"Wait until cfx1 runs for {self._time_is} seconds\n")
-        self.control_log.message_is = sentence
-        while self._time_is: #wait for elevator enable during 15 minuntes
-            window_frame.update()
-            value:AiosData = self.aios_data_is
-            if value.cfx1_time not in ("00:00:00", "88:88:88"):
-                sentence = (f"Cfx runs. Its time is {value.cfx1_time} seconds\n")
-                self.control_log.message_is = sentence
-                break
-        if not bool(self._time_is):
-            sentence = ("CFX1 didn't run\n")
-            self.control_log.message_is = sentence
-        return bool(self._time_is)
 
     def __simulate_elevator_request_1st(self):
         '''
@@ -476,7 +516,9 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         self.file_data = method_status
         sentence = ("Call elevator module for 1st plate\n")
         self.control_log.message_is = sentence
-        print(f"change method_staus.csv.{self.__convert_method_info_for_display(method_status)}\n")
+        sentence = "Change method_staus.csv."\
+                +f"{self.__convert_method_info_for_display(method_status)}\n"
+        self.control_log.message_is = sentence
 
     def __simulate_elevator_request_2nd(self):
         '''
@@ -488,7 +530,8 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         self.file_data = method_status
         sentence = ("Call elevator module for 2nd plate\n")
         self.control_log.message_is = sentence
-        sentence = (f"Change method_staus.csv.{self.__convert_method_info_for_display(method_status)}\n")
+        sentence = "Change method_staus.csv."\
+                +f"{self.__convert_method_info_for_display(method_status)}\n"
         self.control_log.message_is = sentence
 
     def __simulate_plate_transfer_1st(self)->None:
@@ -500,11 +543,12 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         self.file_data = method_status
         sentence = ("Transfer 1st plate\n")
         self.control_log.message_is = sentence
-        sentence = (f"Change method_staus.csv.{self.__convert_method_info_for_display(method_status)}\n")
+        sentence = "Change method_staus.csv."\
+                +f"{self.__convert_method_info_for_display(method_status)}\n"
         self.control_log.message_is = sentence
-
-        self.__waiting_for_plate_exist_file_creation()
-        self._delay_sec(5) #의도적 지연. 사용자의 상태 변화 인식을 위함
+        self.__waiting_for_plate_exist_file_creation(300)
+        for _ in self.__delay_sec(5):
+            pass#의도적 지연. 사용자의 상태 변화 인식을 위함
 
     def __simulate_plate_transfer_2nd(self)->None:
         '''
@@ -515,68 +559,88 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         self.file_data = method_status
         sentence = ("Transfer 2nd plate\n")
         self.control_log.message_is = sentence
-        sentence = (f"Change method_staus.csv.{self.__convert_method_info_for_display(method_status)}\n")
+        sentence = "Change method_staus.csv."\
+                +f"{self.__convert_method_info_for_display(method_status)}\n"
         self.control_log.message_is = sentence
+        self.__waiting_for_plate_exist_file_creation(300)
+        for _ in self.__delay_sec(5):
+            pass#의도적 지연. 사용자의 상태 변화 인식을 위함
 
-        self.__waiting_for_plate_exist_file_creation()
-        self._delay_sec(5) #의도적 지연. 사용자의 상태 변화 인식을 위함
+    def __waiting_for_plate_exist_file_creation(self, wtime)->bool:
+        '''
+        plate_exist.csv 파일이 생성될 때까지 대기한다.
+        이 파일은 AIOS에 의해 생성된다. 일정 시간 대기하는 동안
+        파일이 생성되면 True 아니면 False를 반환한다.
+        '''
+        sentence = ("waiting for 'place_exist.csv' ") + f"{wtime}seconds\n"
+        self.control_log.message_is = sentence
+        for _ in self.__delay_sec(wtime):
+            if self.aios_data_is.plate_exist == "Existing":
+                break
+        return bool(self._time_is)
 
-    def _delay_sec(self, seconds):
+    def __waiting_for_elevator_enable_file_creation(self, wtime:int = 60)->bool:
+        '''
+        AIOS로부터 엘리베이터 모듈이 올 때까지 60초 대기한다.
+        그 사이에 엘리베이터 모듈이 올라오면 True
+        올라오지 않으면 False를 반환한다.
+        '''
+        sentence = (f"waiting for elevator module for {wtime} seconds\n")
+        self.control_log.message_is = sentence
+        for _ in self.__delay_sec(wtime):
+            if self.aios_data_is.elevator_enable == 'Existing':
+                break
+        if bool(self._time_is):
+            sentence = ("Elevator module arrived\n")
+        else:
+            sentence = ("elevator module didn't arrive\n")
+        self.control_log.message_is = sentence
+        return bool(self._time_is)
+
+    def __waiting_for_cfx_remain_time_change(self, wtime:int = 9000)->bool:
+        '''
+        2plate 시나리오에서 두 번째 플레이트 전달 시 사용하는 메서드.
+        CFX_status.csv 파일의 동작 시간은 CFX가 동작 상태가 되면
+        그 시간이 00:00:00 또는 88:88:88에서 다른 것으로 변한다.
+        그 외 disconnected를 감지하기 위해 99:99:99도 인식한다.
+        이 시간대가 아닌 다른 시간이 되면 CFX1이 동작 상태가 되었다고 판단한다.
+        '''
+        sentence = (f"Wait until cfx1 runs for {wtime} seconds\n")
+        self.control_log.message_is = sentence
+        for _ in self.__delay_sec(wtime): #wait for elevator enable during 15 minuntes
+            value:AiosData = self.aios_data_is
+            if value.cfx1_time not in ("00:00:00", "88:88:88","99:99:99"):
+                sentence = (f"Cfx runs. Its time is {value.cfx1_time} seconds\n")
+                self.control_log.message_is = sentence
+                break
+        if not bool(self._time_is):
+            sentence = ("CFX1 didn't run\n")
+            self.control_log.message_is = sentence
+        return bool(self._time_is)
+
+    # def __delay_sec(self, seconds):
+    #     self._time_is = seconds
+    #     sentence = (f"Delay {seconds} seconds\n")
+    #     self.control_log.message_is = sentence
+    #     while self._time_is:
+    #         window_frame.update()
+
+    def __delay_sec(self, seconds)->bool:
+        '''
+        딜레이 기능의 완료 여부를 판단하기 위해 Generator로 구현, 
+        Delay가 끝나면 False, Delay 중이면 True를 반환하도록 설계하였다.
+        다른 함수에서 for _ in self.__delay_sec로 쓰이며, 처음 한 번은 
+        무조건 for문 내부를 돌 수 있도록 처음엔 무조건 True를 반환하도록 설계하였다.
+        '''
         self._time_is = seconds
         sentence = (f"Delay {seconds} seconds\n")
         self.control_log.message_is = sentence
+        yield True
         while self._time_is:
             window_frame.update()
-
-    def __run_1plate_scenario(self)->bool:
-        '''
-        1) elevator 모듈을 요청한다.
-        2) 시간 내에 엘리베이터 모듈이 도착하면 플레이트를 놓으라고 한다.
-        3) 사용자가 놓으면 plate를 전달했음을 알린다.
-        '''
-        sentence = ("Start auto run scenario with 1st plate\n")
-        self.control_log.message_is = sentence
-        self.__simulate_run_starlet()
-        self._delay_sec(5) #의도적 지연. 사용자의 상태 변화 인식을 위함
-        self.__simulate_elevator_request_1st()
-        if not self.__waiting_for_elevator_enable_file_creation(): #비동기 동작 메서드
-            sentence = ("Transfer failure. Elevator module didn't arrive\n")
-            self.control_log.message_is = sentence
-            self.__show_messagebox(**error_message['err_0'])
-            self.button_run.state_is = 'active'
-            return False
-        sentence = ("Elevator module arrived. Try to transfer 1st plate\n")
-        self.control_log.message_is = sentence
-        self.__show_messagebox(**info_message['info_1'], time_sec=300)
-        self.__simulate_plate_transfer_1st()
-        return True
-
-    def __run_2plate_scenario(self)->bool:
-        '''
-        1) elevator 모듈을 요청한다.
-        2) 시간 내에 엘리베이터 모듈이 도착하면 플레이트를 놓으라고 한다.
-        3) 사용자가 놓으면 plate를 전달했음을 알린다.
-        '''
-        sentence = ("Start auto run scenario with 2nd plate\n")
-        self.control_log.message_is = sentence
-        self.__simulate_run_starlet()
-        if self.__waiting_for_cfx_remain_time_change():
-            self.__simulate_elevator_request_2nd()
-            if not self.__waiting_for_elevator_enable_file_creation(): #비동기 동작 메서드
-                sentence = ("Transfer failure. Elevator module didn't arrive\n")
-                self.control_log.message_is = sentence
-                self.__show_messagebox(**error_message['err_0'])
-                self.button_run.state_is = 'active'
-                return False
-            sentence = ("Elevator module arrived. Try to transfer 2nd plate\n")
-            self.control_log.message_is = sentence
-            self.__show_messagebox(**info_message['info_1'], time_sec=300)
-            self.__simulate_plate_transfer_2nd()
-            return True
-        sentence = ('''Failure to auto run scenario with 2nd plate\n.
-                     Failed to check cfx1's operation in 15 min\n''')
-        self.control_log.message_is = sentence
-        return False
+            yield True
+        yield False
 
 if __name__ == '__main__':
     simulator = PresenterSimulator()
+    simulator._start()

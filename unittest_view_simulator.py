@@ -22,12 +22,12 @@ list_array_cfx_status = [
                          ["Control Status,","0"],
                         ]
 
-view_simulator.cfx_status.contents = list_array_cfx_status
-view_simulator.method_status.contents = list_array_method_status
-view_simulator.elevator_enable.contents = "Existing"
-view_simulator.plate_exist.contents ="Non existing"
-view_simulator.control_log.contents = "Test messageblah, blah, blah~~~~~~~~~~~~~~~~~~~ㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇㄹㅇ~`"
-view_simulator.title.contents = "AIOS Version 0.0"
+view_simulator.cfx_status.message_is = list_array_cfx_status
+view_simulator.method_status.message_is = list_array_method_status
+view_simulator.elevator_enable.message_is = "Existing"
+view_simulator.plate_exist.message_is ="Non existing"
+view_simulator.control_log.message_is = "Test message, blah, blah, blah"
+view_simulator.title.message_is = "AIOS Version 0.0"
 
 window_frame.mainloop()
 

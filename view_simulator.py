@@ -69,7 +69,8 @@ info_plate_exist = {
 info_control_log = {
 	'text':"Control_Log",
     'place':{'x':307, 'y':223, 'width':405, 'height':316},
-    'text_place':{'x':0, 'y':0, 'width':388, 'height':279},#라벨 프레임의 폭에서 스크롤 바의 폭 (17, 37) 제외
+    'text_place':{'x':0, 'y':0, 'width':388, 'height':279},
+    #라벨 프레임의 폭에서 스크롤 바의 폭 (17, 37) 제외
     'text_config':{'font':font_contents2},
 	}
 info_auto_run = {
@@ -93,7 +94,7 @@ class Button:
     그 외 버튼은 disabled 상태로 생성
     '''
     def __init__(self, target:tk.LabelFrame, info:dict):
-        self.__command_list = [self._button_pressed,]
+        self.__command_list = [self._button_pressed,] #initialize command_list
         self.obj = tk.Button(
             target, text = info['text'],
             command=lambda:[item() for item in self.__command_list], bd=3,
@@ -126,7 +127,7 @@ class Button:
         추가의 형태로 더해지므로 넣는 걸 잘 해야 한다.
         '''
         self.__command_list.append(func)
-        self.obj.config(command=lambda:[item() for item in self.__command_list])
+        self.obj.config(command=lambda:[item() for item in self.command_list])
     @property
     def state_is(self)->str:
         '''
@@ -306,6 +307,8 @@ class ViewSimulator():
 
     def _file_select(self):
         if 'active' in (self.button_1plate.state_is, self.button_2plate.state_is):
+            if 'normal' not in (self.button_1plate.state_is, self.button_2plate.state_is):
+                return
             file = filedialog.askopenfile(**info_plrn_file)
             if file is None:
                 messagebox.showwarning("경고", "plrn파일을 선택하세요")
@@ -318,12 +321,11 @@ class ViewSimulator():
                 else:
                     self.plrn_info_is = dict(scenario='2plate', plrn_name=selected_plrn_name)
 
-
     def _update_button(self):
         '''
         tkinter의 command와 binding 되어 event 기반으로 동작하는 method다.
         state_is를 통해 얻어온 state를 바탕으로 이미지를 바꾸는 역할을 수행한다.
-        또한 plrn_flag와 run_flag를 여기서 세우고 끈다.
+        또한 plrn_flag와 run_flag를 통해 전체적인 버턴들의 상태를 갱신한다.
         '''
         plrn_flag = False
         auto_run_flag = False

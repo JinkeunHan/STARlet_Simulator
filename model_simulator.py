@@ -18,8 +18,16 @@ info_method_status = {'path':"C:/Seegene_Method_Setting/RM_module/",
                       'name':"method_status.csv"}
 info_trc = {'path':"C:/Program Files (x86)/HAMILTON/LogFiles/",
             'name':"test.trc"}
-info_aios_log = {'path':"D:/Release/Logs/Debug/",
-                'name':"test.txt"}
+trc_file_contents = {'Reset1':"SYSTEM : User Output Dialog - complete;\n",
+                'Reset2':"progress; Error manually recovered by user.\n",
+                'Error1':"SYSTEM : User Output Dialog - start;\n",
+                'Error2':"progress; Error handling waiting for manual recovery\n",
+                'Error3':"SYSTEM : Abort method - start;\n",
+                'Error4':"SYSTEM : Method has been aborted by the system - complete;\n",
+                'Error5':"SYSTEM : Method has been aborted by the method - complete;\n",
+                'Error6':"SYSTEM : Method has been aborted by the user - complete;\n",}
+# info_aios_log = {'path':"D:/Release/Logs/Debug/",
+#                 'name':"test.txt"}
 @dataclass
 class AiosData:
     '''
@@ -43,7 +51,7 @@ class ModelSimulator:
     1) 특정 경로의 폴더를 탐색하여 파일의 존재 여부를 확인하는 기능
     - Elevator_enable.csv 및 Plate_Exist.csv가 여기에 해당
     2) 특정 경로의 파일을 열어 그 내용을 읽는 기능
-    - CFX_Status.csv 및 yy-mm-dd.txt가 여기에 해당
+    - CFX_Status.csv가 여기에 해당
     3) 특정 경로에 지정된 이름의 파일을 쓰는 기능
     - Method_status.csv 및 *.trc가 여기에 해당
     '''
@@ -56,7 +64,7 @@ class ModelSimulator:
         self.plate_exist_file = FileChecker(**info_plate_exist)
         self.method_status_file = FileChecker(**info_method_status)
         self.cfx_status_file = FileChecker(**info_cfx_status)
-        self.aios_log_file = FileChecker(**info_aios_log)
+        # self.aios_log_file = FileChecker(**info_aios_log)
         self.trc_file = FileChecker(**info_trc)
 
     @property
@@ -89,9 +97,7 @@ class ModelSimulator:
         이후 갱신된 정보를 반환한다.
         '''
         value:AiosData = self.aios_data_is
-        self.cfx_status_file.copy_file()
         cfx_status:list[str] = self.cfx_status_file.read_file()
-        self.cfx_status_file.del_file()
         value.elevator_enable = self.elevator_enable_file.is_exist
         value.plate_exist = self.plate_exist_file.is_exist
         if isinstance(cfx_status, list):
