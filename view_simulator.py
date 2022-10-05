@@ -9,10 +9,10 @@ from tkinter import filedialog
 from tkinter import messagebox
 from typing import Union
 
-SIM_VERISON = "v1.0"
+SIM_VERISON = "v1.00.000"
 window_frame = tk.Tk()
 
-window_frame.title("STARlet, AIOS log logger")
+window_frame.title("AIOS Simulator ")
 window_frame.geometry("740x575")
 window_frame.config(bg = '#4472C4')
 window_frame.resizable(height=False, width=False)
@@ -40,7 +40,7 @@ info_title = {
 	'text':"",
     'place':{'x':211, 'y':25, 'width':333, 'height':45},
     'message_place':{'x':0, 'y':0, 'width':333},
-    'message_config':{'text':"AIOS Simulatior v1.0", 'font':font_title},
+    'message_config':{'text':"AIOS Simulatior "+SIM_VERISON, 'font':font_title},
 	}
 info_cfx_status = {
 	'text':"CFX_Status.csv",
@@ -327,18 +327,16 @@ class ViewSimulator():
         state_is를 통해 얻어온 state를 바탕으로 이미지를 바꾸는 역할을 수행한다.
         또한 plrn_flag와 run_flag를 통해 전체적인 버턴들의 상태를 갱신한다.
         '''
-        plrn_flag = False
+        plrn_flag = True
         auto_run_flag = False
-        if 'active' in self.button_1plate.state_is:
-            self.button_2plate.state_is = 'normal'
-            plrn_flag = True
-        elif 'active' in self.button_2plate.state_is:
-            self.button_1plate.state_is = 'normal'
-            plrn_flag = True
-        else:
+        if 'normal' not in (self.button_1plate.state_is, self.button_2plate.state_is):
+            if self.plrn_info_is['scenario'] == '1plate':
+                self.button_2plate.state_is = 'normal'
+            elif self.plrn_info_is['scenario'] == '2plate':
+                self.button_1plate.state_is = 'normal'
+        elif 'active' not in (self.button_1plate.state_is, self.button_2plate.state_is):
             plrn_flag = False
             self._buttons_auto_run('normal') #눌린 상태로 존재하는 것 방지용.
-
         #check below buttons are pressed
         auto_run_flag = bool('active' in (self.button_abort1.state_is,
                                           self.button_abort2.state_is,

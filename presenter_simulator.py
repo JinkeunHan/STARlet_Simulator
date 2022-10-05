@@ -26,7 +26,7 @@ warning_message:dict = {
     'warn_0':{'m_type':'warning', 'message':"CFX 장비가 동작 중입니다.", 'time_sec':3},
 }
 error_message:dict = {
-    'err_0':{'m_type':'error', 'message':'모듈이 정해진 시간(30초) 안에 도착하지 않았습니다.', 'time_sec':3},
+    'err_0':{'m_type':'error', 'message':'모듈이 정해진 시간(60초) 안에 도착하지 않았습니다.', 'time_sec':3},
     'err_1':{'m_type':'error', 'message':'엘리베이터 모듈의 움직임이 감지되지 않았습니다.', 'time_sec':3},
 }
 class PresenterSimulator(ModelSimulator, ViewSimulator):
@@ -91,22 +91,25 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         '''
         1plate 및 2plate 버튼에 command_list 메서드를 통해 추가될 메서드
         두 버튼의 상태가 모두 보통 상태면 STARlet의 정지 상태를 모사한다.
+        사용자가 plrn 파일을 선택하면 (둘 중 하나는 활성 상태면) 동작 상태를 모사한다.
+        중복으로 동작 상태를 모사하는 것을 방지한다.
         '''
         if self.button_2plate.state_is == self.button_1plate.state_is =='normal':
             self.__simulate_stop_starlet()
+        elif self.aios_data_is.method_run != '1':
+            self.__simulate_run_starlet()
 
     def _command_abort1_button(self)->None:
         '''
         Abort1 버튼 객체에 추가될 메서드. Abort1 시나리오를 수행
-        버튼의 상태가 'normal'이면 STARlet 정지 구현
+        버튼의 상태가 'normal'이면 STARlet 동작 구현
         버튼의 상태가 'active'이면 Abort1 시나리오 구현
         Abort1 시나리오: STARlet 동작 중 STARlet Abort 발생
         '''
         if self.button_abort1.state_is == 'normal':
-            self.__simulate_stop_starlet()
+            self.__simulate_run_starlet()
         elif self.button_abort1.state_is == 'active':
             self.button_abort1.state_is = 'inactive'
-            self.__simulate_run_starlet()
             self.__show_messagebox(**info_message['info_2'])
             for _ in self.__delay_sec(5):
                 pass#의도적 지연. 사용자의 상태 변화 인식을 위함
@@ -117,17 +120,16 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
     def _command_abort2_button(self)->None:
         '''
         Abort2 버튼 객체에 추가될 메서드. Abort2 시나리오를 수행
-        버튼의 상태가 'normal'이면 STARlet 정지 구현
+        버튼의 상태가 'normal'이면 STARlet 동작 구현
         버튼의 상태가 'active'이면 Abort2 시나리오 구현
         Abort2 시나리오: STARlet에게서 플레이트 수령 실패
         '''
         if self.button_abort2.state_is == 'normal':
-            self.__simulate_stop_starlet()
+            self.__simulate_run_starlet()
         elif self.button_abort2.state_is == 'active':
             if self.__check_cfx_is_available('1plate'):
                 self.button_abort2.state_is = 'inactive'
                 self.__show_messagebox(**info_message['info_5'])
-                self.__simulate_run_starlet()
                 for _ in self.__delay_sec(5):
                     pass#의도적 지연. 사용자의 상태 변화 인식을 위함
                 self.__simulate_elevator_request_1st()
@@ -144,16 +146,15 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
     def _command_abort3_button(self)->None:
         '''
         Abort3 버튼 객체에 추가될 메서드. Abort3 시나리오를 수행
-        버튼의 상태가 'normal'이면 STARlet 정지 구현
+        버튼의 상태가 'normal'이면 STARlet 동작 구현
         버튼의 상태가 'active'이면 Abort3 시나리오 구현
         Abort3 시나리오: STARlet 모듈 호출 시 정해진 시간 이내에 도달 실패
         '''
         if self.button_abort3.state_is == 'normal':
-            self.__simulate_stop_starlet()
+            self.__simulate_run_starlet()
         elif self.button_abort3.state_is == 'active':
             if self.__check_cfx_is_available('1plate'):
                 self.button_abort3.state_is = 'inactive'
-                self.__simulate_run_starlet()
                 self.__show_messagebox(**info_message['info_8'])
                 for _ in self.__delay_sec(5):
                     pass#의도적 지연. 사용자의 상태 변화 인식을 위함
@@ -176,7 +177,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         plrn 정보를 바탕으로 1plate 또는 2plate 시나리오를 수행한다.
         '''
         if self.button_run.state_is == 'normal':
-            self.__simulate_stop_starlet()
+            self.__simulate_run_starlet()
         elif self.button_run.state_is == 'active':
             plrn_info = self.plrn_info_is
             if self.__check_cfx_is_available(plrn_info['scenario']):
@@ -198,7 +199,6 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         '''
         sentence = ("Start auto run scenario with 1st plate\n")
         self.control_log.message_is = sentence
-        self.__simulate_run_starlet()
         for _ in self.__delay_sec(5):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
         self.__simulate_elevator_request_1st()
@@ -224,7 +224,6 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         '''
         sentence = ("Start auto run scenario with 2nd plate\n")
         self.control_log.message_is = sentence
-        self.__simulate_run_starlet()
         if self.__waiting_for_cfx_remain_time_change():
             self.__simulate_elevator_request_2nd()
             if not self.__waiting_for_elevator_enable_file_creation(): #비동기 동작 메서드
@@ -249,7 +248,6 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         1) 정해진 문장을 trc 파일에 쓴다.
         2) Starlet의 abort 상태를 모방한다.
         '''
-        self.__simulate_run_starlet()
         for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
         value:AiosData
@@ -265,7 +263,6 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         1) 정해진 문장을 trc 파일에 쓴다.
         2) Starlet의 abort 상태를 모방한다.
         '''
-        self.__simulate_run_starlet()
         for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
         value:AiosData
@@ -281,8 +278,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         1) 정해진 문장을 trc 파일에 쓴다.
         2) Starlet의 abort 상태를 모방한다.
         '''
-        self.__simulate_run_starlet()
-        while self.__delay_sec(1):
+        for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
         value:AiosData
         value.message = trc_file_contents['Error3']
@@ -297,8 +293,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         1) 정해진 문장을 trc 파일에 쓴다.
         2) Starlet의 abort 상태를 모방한다.
         '''
-        self.__simulate_run_starlet()
-        while self.__delay_sec(1):
+        for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
         value:AiosData
         value.message = trc_file_contents['Error4']
@@ -314,8 +309,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         1) 정해진 문장을 trc 파일에 쓴다.
         2) Starlet의 abort 상태를 모방한다.
         '''
-        self.__simulate_run_starlet()
-        while self.__delay_sec(1):
+        for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
         value:AiosData
         value.message = trc_file_contents['Error5']
@@ -330,8 +324,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         1) 정해진 문장을 trc 파일에 쓴다.
         2) Starlet의 abort 상태를 모방한다.
         '''
-        self.__simulate_run_starlet()
-        while self.__delay_sec(1):
+        for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
         value:AiosData
         value.message = trc_file_contents['Error6']
@@ -492,6 +485,8 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         AiosData를 읽어온 다음 여기에 plrn 정보를 추가한다.
         그리고 AIOS에게 STARlet이 동작 중임을 알린다.
         '''
+        sentence = ("Start starlet\n")
+        self.control_log.message_is = sentence
         method_status:AiosData = self.aios_data_is
         method_status.method_run = '1'
         method_status.elevator_request = '0'
