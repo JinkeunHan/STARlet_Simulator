@@ -250,7 +250,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         '''
         for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
-        value:AiosData
+        value:AiosData = self.aios_data_is
         value.message = trc_file_contents['Error1']
         self.file_data = value
         sentence = f"Error1 button is clicked. Write {trc_file_contents['Error1']}"
@@ -265,7 +265,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         '''
         for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
-        value:AiosData
+        value:AiosData = self.aios_data_is
         value.message = trc_file_contents['Error2']
         self.file_data = value
         sentence = (f"Error2 button is clicked. Write {trc_file_contents['Error2']}")
@@ -280,7 +280,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         '''
         for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
-        value:AiosData
+        value:AiosData = self.aios_data_is
         value.message = trc_file_contents['Error3']
         self.file_data = value
         sentence = (f"Error3 button is clicked. Write {trc_file_contents['Error3']}")
@@ -295,7 +295,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         '''
         for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
-        value:AiosData
+        value:AiosData = self.aios_data_is
         value.message = trc_file_contents['Error4']
         self.file_data = value
         self.trc_file.write_file([trc_file_contents['Error4']])
@@ -311,7 +311,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         '''
         for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
-        value:AiosData
+        value:AiosData = self.aios_data_is
         value.message = trc_file_contents['Error5']
         self.file_data = value
         sentence = (f"Error5 button is clicked. Write {trc_file_contents['Error5']}")
@@ -326,7 +326,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         '''
         for _ in self.__delay_sec(1):
             pass#의도적 지연. 사용자의 상태 변화 인식을 위함
-        value:AiosData
+        value:AiosData = self.aios_data_is
         value.message = trc_file_contents['Error6']
         self.file_data = value
         sentence = (f"Error6 button is clicked. Write {trc_file_contents['Error6']}")
@@ -339,7 +339,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         1) 정해진 문장을 trc 파일에 쓴다.
         2) Starlet의 abort 상태를 모방한다.
         '''
-        value:AiosData
+        value:AiosData = self.aios_data_is
         value.message = trc_file_contents['Reset1']
         self.file_data = value
         sentence = (f"Reset1 button is clicked. Write {trc_file_contents['Reset1']}")
@@ -352,7 +352,7 @@ class PresenterSimulator(ModelSimulator, ViewSimulator):
         1) 정해진 문장을 trc 파일에 쓴다.
         2) Starlet의 abort 상태를 모방한다.
         '''
-        value:AiosData
+        value:AiosData = self.aios_data_is
         value.message = trc_file_contents['Reset2']
         self.file_data = value
         sentence = (f"Reset1 button is clicked. Write {trc_file_contents['Reset2']}")

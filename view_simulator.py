@@ -9,7 +9,7 @@ from tkinter import filedialog
 from tkinter import messagebox
 from typing import Union
 
-SIM_VERISON = "v1.00.000"
+SIM_VERISON = "v1.00.001"
 window_frame = tk.Tk()
 
 window_frame.title("AIOS Simulator ")
